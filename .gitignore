@@ -1,0 +1,10 @@
+**/.vscode
+
+**/tmp/
+
+**/*.zip
+**/*.vec
+
+# Compiled files
+**/*.pyc
+*.pdf
