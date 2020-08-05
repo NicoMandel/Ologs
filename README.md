@@ -18,7 +18,7 @@ Compiled files, such as:
 * `.pyc`
 * `.vscode/` config folder
 * `.zip` & `.vec` files - to ensure fasttext is not tracked
-
+* General `Tex.gitignore` file from the [github repository](https://github.com/github/gitignore/blob/master/TeX.gitignore)
 
 ## Branches & tags
 * `master` - current working master
