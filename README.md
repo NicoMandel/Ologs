@@ -23,4 +23,4 @@ Compiled files, such as:
 ## Branches & tags
 * `master` - current working master
 * None other yet
-* No tags yet
+* tag `v0.1` - initial commit  
