@@ -22,5 +22,5 @@ Compiled files, such as:
 
 ## Branches & tags
 * `master` - current working master
-* None other yet
+* `LitNico` - for the first draft of the literature review in additional file `lit.tex`
 * tag `v0.1` - initial commit  
