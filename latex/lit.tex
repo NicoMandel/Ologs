@@ -111,7 +111,7 @@ bindingoffset=0mm, top=20mm,bottom=20mm}
 \maketitle
 
 
-\section*{Ontologies From Confirmation of Candidature Document}
+\section{Ontologies From Confirmation of Candidature Document}
 \subsection{Spatial-Semantic-Information} \label{subsec:LitMapsSpatSem}
 \begin{figure*}[th]
 \centering
@@ -152,14 +152,14 @@ Cavaliere et al.~\cite{cavaliere_empowering_2018} used an ontology representatio
 
 While all of these approaches attempt at planning admissible paths or discretising spatial relations and semantic terms, one of the fundamental questions to be answered is where the robot currently is in the map and how certain it is of its location.
 
-\section*{New Stuff}
+\section{New Stuff}
 \begin{itemize}
     \item Toudeshki's approach in image space using an object detector~\cite{toudeshki_robust_2018}
     \item The approach from Tung Dang for Octomaps \& 2 classes~\cite{dang_autonomous_2018}
     \item The newest success from chaplot~\cite{chaplot_object_2020,chaplot_learning_2019,chaplot_semantic_2020} referring to Zhang~\cite{zhang_hierarchical_2019} and Wu~\cite{wu_learning_2018}
 \end{itemize}
 
-\section*{Stuff from RL and other fields - combining space (image or physical) and a semantic significance}
+\section{Stuff from RL and other fields - combining space (image or physical) and a semantic significance}
 \begin{itemize}
     \item Niko Suenderhauf's approach for passive mapping~\cite{sunderhauf_meaningful_2017}
     \item Dubey et al's. research on human priors~\cite{dubey_investigating_2018}
@@ -173,7 +173,7 @@ While all of these approaches attempt at planning admissible paths or discretisi
 
 Sunderhauf et al.~\cite{sunderhauf_meaningful_2017} state that, while semantic maps may benefit domains such as path planning and manipulation, the investigation of these benefits will in turn show which representations are appropriate and adequate. This underlines the importance of finding ways to include semantic information and posing the question what semantic information representations are available to use with SLAM and semantics.
 
-\section*{UAV Stuff - also from CoC document}
+\section{UAV Stuff - also from CoC document}
 \subsection{UAVs Using Semantics without Motion Planning} \label{subsec:LitUAVPassive}
 
 While multiple efforts of dynamically re-planning UAV paths are ongoing, a few projects focus on the use of semantic features in an aerial context. However, the majority of current research in this area does not include semantic information into active path planning:
@@ -204,6 +204,58 @@ Dang et al.~\cite{dang_autonomous_2018} employed a NN online to detected two cla
 Most recently, Toudeshki et al.~\cite{toudeshki_robust_2018} used a state-of-the-art object detection algorithm to track a trajectory in image space for the UAV to autonomously align with. They employed a lane-filtering controller and a self-developed anticipatory control to adjust the course of the UAV to reach a goal. While their use of semantically salient objects as navigation cues is closest to our research, computations are still run off-board, navigation relies on a predefined trajectory and the environment is artificially created to suit the object detector, thus limiting the potential application to new fields.
 
 Koch et al.~\cite{koch_automatic_2019} extend a submodular planning mechanism through an alternative approach for calculating viewing angles. They assign semantic constraints on areas the UAV is allowed to pass over, thus restricting the path planning algorithm to admissible areas while maintaining reproduction performance. 
+
+\section{New Structure}
+Not a classic literature review paper - lacks the structured methodology of searching for literature with defined inclusion/exclusion criteria, however, aims to highlight use-cases, where semantic information was included into navigation and how it improved performance.
+\subsection{Introduction}
+\subsubsection{Why UAVs}
+\begin{itemize}
+    \item high potential action/motion space 
+    \item highly constrained compuational performance
+    \item high requirements on safety
+\end{itemize}
+semantics have shown to be helpful in other fields. RL, SLAM and general navigation field places large emphasis on this.  
+\subsubsection{Difference to other literature}
+Most relevant literature:
+\begin{itemize}
+    \item Kostavlis and Gasteratos summary of semantic mapping~\cite{kostavelis_semantic_2015}
+    \item Landsiedel et al. summarized spatial reasoning and cognitive maps~\cite{landsiedel_review_2017}
+\end{itemize}
+Many applications that actually use it - see all the examples.
+\subsubsection{Contributions}
+Attempt of structuring the information spaces that are available in an Olog form. Kostavlis summarize the main literature, landsiedel point at challenges and difficulties in the field. We try to formalise it using Ologs. 
+
+\subsection{Spatial definitions}
+This section is aimed at showing the spatial classifications that are possible and highlighting the differences and translations that are undertaken between them.
+\subsubsection{Image Space}
+\begin{itemize}
+    \item Every object detector ever 
+    \item Toudeshki~\cite{toudeshki_robust_2018}
+\end{itemize}
+\subsubsection{Metric Maps}
+\begin{itemize}
+    \item Chaplot et al.~\cite{chaplot_object_2020}
+\end{itemize}
+\subsubsection{Topological Maps}
+\begin{itemize}
+    \item Suenderhauf~\cite{sunderhauf_where_2019}
+\end{itemize}
+\subsubsection{Use of semantics}
+for path planning algorithms, spatial constraints, as inputs to reinforcement learning vectors, whatever we can find. 
+\subsection{Semantic definitions}
+\subsubsection{Natural language stuff}
+\begin{itemize}
+    \item WordNet~\cite{fellbaum_nouns_1998,budanitsky_evaluating_2006}
+    \item Word2Vec~\cite{bojanowski_enriching_2016}
+\end{itemize}
+\subsubsection{Alternative approaches}
+A lot of work concerned with mapping from images into language space and vice versa - attention prediction, caption prediction, etc.~\cite{barnard_computational_2016}. Selectively excluded from the literature for this. We are only concerned with mapping concepts to spaces and how the concepts COULD be used.
+\subsection{Category Theory Part}
+\begin{itemize}
+    \item Functional Data Migration Paper Stuff~\cite{spivak_functorial_2013}
+    \item Category Theory for the Sciences Book~\cite{david_i_spivak_category_2014}
+    \item And the paper to it~\cite{spivak_ologs_2012}
+\end{itemize}
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}
