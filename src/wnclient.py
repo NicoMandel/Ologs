@@ -131,6 +131,18 @@ class wnclient:
     num_hypos = classmethod(lambda cls, s: len(list(s.closure(cls.hypo))))
 
 
+    @staticmethod
+    def get_lexmembers(lexname):
+        """ Gets the list of all synsets of a lexicon. Please see [here](https://wordnet.princeton.edu/documentation/lexnames5wn) for more information. 
+            Raises a TypeError if the lexname is not in the system. Iterates through ALL synsets, may take a while.
+            Returns: A list of synsets
+        """
+        try:
+            lexlist = [ss for ss in wn.all_synsets(pos='n') if lexname in ss.lexname()]
+            return lexlist
+        except:
+            raise TypeError("Unknown Lexname. Please try again")
+
     ################
     ### ROS FUNCTIONS
     ################

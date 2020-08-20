@@ -13,9 +13,14 @@ import numpy as np
 
 # import AHP
 import pandas as pd
+import os.path
+import csv 
+import io           # For getting Word2Vec
+from utils import load_vectors
+
 
 # Gazebo imports
-from Gazebo_client import GazeboModelClient  
+# from Gazebo_client import GazeboModelClient  
 
 
 class NodePair:
@@ -241,27 +246,107 @@ def meronymLevel(name, goal="person"):
 
     ########## False calculation, see above!
 
+def printsomestats(syn):
+    print("Definition: {}".format(syn.definition()))
+    print("Meros for : {}".format(syn))
+    print("Function also_sees: {}".format(syn.also_sees()))
+    # print("Function closure: {}".format(syn.closure()))
+    print("Function hypernyms: {}".format(syn.hypernyms()))
+    print("Function hyponyms: {}".format(syn.hyponyms()))           #This is the one that we want
+    print("Function: in_region_domains: {}".format(syn.in_region_domains()))
+    print("Function: in_topic_domains: {}".format(syn.in_topic_domains()))
+    print("Function: in_usage_domains: {}".format(syn.in_usage_domains()))
+    print("Function: member_holonyms: {}".format(syn.member_holonyms()))
+    print("Function: member meronyms {}".format(syn.member_meronyms()))
+    print("Function: Part holonyms: {}".format(syn.part_holonyms()))
+    print("Function: Part Meronyms: {}".format(syn.part_meronyms()))
+    print("Function: Region_domains: {}".format(syn.region_domains()))
+    print("Function: Topic Domains: {}".format(syn.topic_domains()))
+    print("Function: Usage Domains: {}".format(syn.usage_domains()))
+
+
+def get_object_classes():
+    """
+        Function to get the list of object classes. Returns a list of trainable object classes from the .tmp folder
+    """
+    parentDir = os.path.dirname(__file__)
+    tmpdir = os.path.abspath(os.path.join(parentDir,'..','tmp'))
+    csvfile = os.path.join(tmpdir, 'class-descriptions-boxable.csv')
+    trainfile = os.path.join(tmpdir, 'classes-trainable.txt')
+    csvdict = {}
+    with open(csvfile, 'r') as f:
+        reader = csv.reader(f)
+        for row in reader:
+            csvdict[row[1]] = row[0]
+
+    trainables = [line.rstrip() for line in open(trainfile, 'r')]
+    trainable_classes = [k for k,v in csvdict.items() if v in trainables]
+    return trainable_classes
+
 
 if __name__=="__main__":
-    
-    # Normal order of things: 
-    # 1. Get the cleaned list of NAMES
-    gzclient = GazeboModelClient()
-    nameList = gzclient.cleanList
-    # removing entries named "clone" - caused by Gazebo Population
-    nameListcleaned = []
-    for name in nameList:
-        if name != 'clone':
-            nameListcleaned.append(name)
+    parentDir = os.path.dirname(__file__)
+    trainable_classes = get_object_classes()
 
-    # objectList = ["oak_tree", "pine tree", "pine-tree 1", "oak tree5", "building_1"]
-    # nameList = ['oak_tree', 'building', 'pine_tree']
+    # Normal order of things: 
+
+    # Get a list of names to work with
+    predeflist = ['region', 'area', 'room']
+    lexname = 'noun.location'
+
+    # TODO: go by the wordNet types - Lexname 
+    # no. 15 is 'noun.location'
+    # no. 16 is 'noun.group'
 
     Wncl = wnclient()
-    synsetDict = {}
-    for name in nameListcleaned:
-        synsetDict[name] = wnclient.synsets_clean(name)
+    lexsslist = Wncl.get_lexmembers(lexname)
 
+    synsetDict = {}
+    synslist = []
+    for name in predeflist:
+        out = wnclient.synsets_clean(name)
+        synsetDict[name] = out
+        # for dic in synsetDict[name]:
+        synslist += out
+    # syns_set = set(synslist)
+    syns_unique = list(set(synslist))
+    lemmas = []
+    for ss in syns_unique:
+        lexicon = ss.lexname()
+        lemmas += ss.lemma_names()
+
+    lemmas_unique = list(set(lemmas))
+
+    # lambda function for the closure operation
+    hypo = lambda s: s.hyponyms()
+
+    arealist = []
+    for syn in syns_unique:
+        areas = syn.closure(hypo)
+        areas_fil = [area for area in areas if lexname in area.lexname()]
+        arealist += areas_fil
+
+    # items in arealist
+    lemlist = []
+    for ar in arealist:
+        lemlist += ar.lemma_names()
+    uniquelems = list(set(lemlist))
+    # print("Test Line")
+
+    ### TODO: Getting the class names done, getting the areas is also done.
+    vecfname = 'wiki-news-300d-1M.vec'
+    tmpdir = os.path.abspath(os.path.join(parentDir,'..','tmp'))
+    vecf = os.path.join(tmpdir, vecfname)
+
+    area_dict = load_vectors(vecf, uniquelems)
+    obj_dict = load_vectors(vecf, trainable_classes)
+
+    print("Test Done")
+
+    ##### TODO: compare the object dictionaries with the area_dictionaries. Good enough for today.
+
+
+    ##### old stuff below
     # Showing all possible combinations of the synsets
     for i,(key,values) in enumerate(synsetDict.items()):
         for j, (k,vv) in enumerate(synsetDict.items()):
@@ -272,14 +357,12 @@ if __name__=="__main__":
                     print("Comparing {} with {}".format(value, v))
                     showConnectGraphSubsets(value,v)
     
-    print("Done With the Trial!")
 
     # showing holonyms of all values in the dictionary
     for key, values in synsetDict:
         print(key)
         for value in value:
             showGraph(value,iters=50, function=wnclient.holos)
-    print("Test Done")
 
   
     # Throw stuff into AHP - unneccessary
