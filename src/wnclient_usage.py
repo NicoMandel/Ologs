@@ -13,10 +13,11 @@ import numpy as np
 
 # import AHP
 import pandas as pd
+import numpy as np
 import os.path
 import csv 
 import io           # For getting Word2Vec
-from utils import load_vectors
+from utils import load_vectors, cosine_sim
 
 
 # Gazebo imports
@@ -341,9 +342,28 @@ if __name__=="__main__":
     area_dict = load_vectors(vecf, uniquelems)
     obj_dict = load_vectors(vecf, trainable_classes)
 
-    print("Test Done")
 
     ##### TODO: compare the object dictionaries with the area_dictionaries. Good enough for today.
+    
+    # 1. get the vectors out
+    for k,v in area_dict.items():
+        area_dict[k] = np.asarray(v).astype(np.float)
+
+    for k,v in obj_dict.items():
+        obj_dict[k] = np.asarray(v).astype(np.float)
+
+    simil_df = pd.DataFrame(index=obj_dict.keys(), columns=area_dict.keys())
+    for key, val in area_dict.items():
+        for k, v in obj_dict.items():
+            sim = cosine_sim(val, v)
+            simil_df.at[k, key] = sim
+    print(simil_df.head())
+    outfname = 'area-object-simil.xlsx'
+    outf = os.path.join(tmpdir, outfname)
+    with pd.ExcelWriter(outf) as writer:
+        simil_df.to_excel(writer)
+
+    print("Test Done")
 
 
     ##### old stuff below
