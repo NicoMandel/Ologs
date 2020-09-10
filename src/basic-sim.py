@@ -11,6 +11,34 @@
 """
 
 import numpy as np
+import matplotlib.pyplot as plt 
+
+class Colordict():
+    """
+        Helper Class to color code the class names for visualisation
+    """
+
+    def __init__(self):
+        cdict = {}
+        cdict["House"] = tuple([0.921, 0.117, 0.137])   # Red
+        cdict["Pavement"] = tuple([0.662, 0.674, 0.647])   # Gray
+        cdict["Grass"] = tuple([0.384, 0.976, 0.411])
+        cdict["Tree"] = tuple([0.164, 0.576, 0.219])
+        cdict["Vehicle"] = tuple([0.172, 0.533, 0.866])
+        cdict["Urban"] = tuple([0.713, 0.207, 0.305])
+        cdict["Forest"] = tuple([0.149, 0.380, 0.141])
+        cdict["Road"] = tuple([0.49, 0.49, 0.49])
+        cdict["Grasslands"] = tuple([0.713, 0.89, 0.631])
+        self.cdict = cdict
+
+    def lookupcolor(self, cname):
+        """
+            Function to return the RGB representation of a color, specified by the class name
+        """
+        try:
+            return self.cdict[cname]
+        except LookupError as e:
+            raise e
 
 def createMap(n, m):
     """
@@ -19,7 +47,19 @@ def createMap(n, m):
         row-major
     """
 
-    return np.empty([n, m])
+    return np.empty([n, m], dtype=object)
+
+def fillmap(gt, cd, scenario):
+    """
+        Helper function to create the ground truth map according to the 
+    """
+    pass
+
+def visualize_map(gtmap, cd):
+    """
+        Function to visualize the map using matplotlib and the color codes defined in cd  
+    """
+    pass
 
 def retrieveVisibleFields(wp, fov=1):
     """
@@ -92,7 +132,7 @@ def entropy(vec):
         Function that returns the Entropy as the -1 * sum(p(x) * ln(p(x)))
     """
     lnvec = np.log(vec)
-    return np.sum(np.dot(vec, lnvec)) * -1
+    return np.sum(np.dot(vec, lnvec)) * -1.0
 
 if __name__=="__main__":
 
@@ -105,12 +145,20 @@ if __name__=="__main__":
     # n3 = m3 = max_map_size/(2)            Keep to 2 levels for now
     gtmap = createMap(n1,m1)            # Ground Truth Map
     l1map = createMap(n1,m1)            # belief map
-    l1_classlist = ["House", "Road", "Grass", "Tree"]
-    obs = obs_probab(classlist)
+    l1_classlist = ["House", "Pavement", "Grass", "Tree", "Vehicle"]
+    l2_classlist = ["Urban", "Forest", "Road", "Grasslands"]
+    
+    # Making a Map
+    cd = Colordict()
+    gtmap = fillmap(gtmap, "1")
+    visualize_map(gtmap, cd)
+    
+    # Observation probabilites and waypoints
+    obs = obs_probab(l1_classlist)
     wps = getpattern(n1,m1, fov)      # Flight pattern
 
     # iterative procedure from here on out
-    last_wp = x[-1]
+    last_wp = wps[-1]
     x_min, x_max, y_min, y_max = retrieveVisibleFields(last_wp, fov=fov)
     vis_fields = l1map[x_min:x_max, y_min:y_max]
     
