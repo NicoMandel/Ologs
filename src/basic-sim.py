@@ -7,7 +7,7 @@
     TODO: Indexing into the right higher level 
     block will require indexing like CUDA! blockDim.x * blockidx.X + ThreadIdx.x
 
-    TODO: Color Mapping as a pandas dataframe - use the transpose method after creation
+    TODO: Turn this into an animation function for matplotlib simlar to the one I used last year
 
     # TODO: Color mapping of imshow of matplotlib through [this](https://matplotlib.org/3.1.0/api/_as_gen/matplotlib.pyplot.imshow.html)
 """
@@ -85,15 +85,15 @@ def fillmap(gt, classlist, scenario):
     return gt
     
 
-def visualize_map(gtmap, cd, returnarray=False):
+def visualize_map(gtmap, cdf, returnarray=False):
     """
         Function to visualize the map using matplotlib and the color codes defined in cd  
     """
     vis_map = np.empty((gtmap.shape[0],gtmap.shape[1], 4))
-    # Fill the word with the color
+    # # Fill the word with the color
     for j in range(gtmap.shape[0]):
         for k in range(gtmap.shape[1]):
-            vis_map[j,k] = cd.lookupcolor(gtmap[j,k])
+            vis_map[j,k] =cdf[gtmap[j,k]]
 
     # visualize it with matplotlib imshow if returnarray is False, else return it
     if not returnarray:
@@ -155,8 +155,8 @@ def updateprobab(obs, obs_probab, prior):
     """
     # Prior is a 3D array
     post = np.empty_like(prior)
-    for i in obs.shape[0]:
-        for j in obs.shape[1]:
+    for i in range(obs.shape[0]):
+        for j in range(obs.shape[1]):
             pr = prior[i,j]
             vec = obs_probab.loc[obs[i,j],:]
             po = vec*prior
@@ -164,8 +164,20 @@ def updateprobab(obs, obs_probab, prior):
             post[i,j] = po
 
     return post
-            
-    
+
+def lookupColorFromPosterior(cdf, post, classlist):
+    """
+        Cdf is a dataframe with the color codes, Post a 3-dim. array with the posterior probabilities over the classes
+        for each 2-dim cell
+    """     
+    col = np.empty((post.shape[0], post.shape[1], cdf.shape[0]))
+    idxmax = np.argmax(post, axis=2)
+    for i in range(idxmax.shape[0]):
+        for j in range(idxmax.shape[1]):
+            col[i,j] = cdf[classlist[idxmax[i,j]]]
+    # alternative: col = cdf[classlist[np.argmax(post, axis=2)]]
+    return col
+
 def updateMap(x_min, x_max, y_min, y_max, posterior, lmap):
     """
         Function that takes the new probabilities with the observations and the original maps and update the function on the right indices
@@ -208,9 +220,8 @@ if __name__=="__main__":
     l1map = createMap(n1, m1, l1_classlist.size)            # belief map
     
     # Making a Map
-    cd = Colordict()
     gtmap = fillmap(gtmap, l1_classlist, 1)
-    gt_vismap = visualize_map(gtmap, cd, True)
+    gt_vismap = visualize_map(gtmap, cdf)
     
     # Observation probabilites and waypoints
     obs_prob = observation_probabilities(l1_classlist)
@@ -230,7 +241,7 @@ if __name__=="__main__":
         # FoV
         # Belief Map
     fig, axes = plt.subplots(2, 2)
-    for wp in wps:
+    for idx, wp in enumerate(wps):
         """
             This is where the iterative updates take place. Using the Ground Truth data (gt), the observation likelihood and the prior over the previous map
         """
@@ -246,13 +257,24 @@ if __name__=="__main__":
         posterior = updateprobab(obs, obs_prob, prior)
         # Re-incorporate the information into the map
         l1map[x_min:x_max, y_min:y_max] = posterior
+        post_vis = lookupColorFromPosterior(cdf, posterior)
+        l1map_vis[x_min:x_max, y_min:y_max] = post_vis
 
 
         # Plotting section
         axes[0].imshow(gt_vismap)
         axes[0].set(title="Ground Truth Map")
 
+        # Plotting the predicted classes
+        axes[1].imshow(l1map_vis)
+        axes[1].set(title="Predicted Map")
+        axes[0].draw()
+        axes[1].draw()
+        plt.show()
         # clear the plots
+        axes[0].clear()
+        axes[1].clear()
+        
          
         
     print("Test Done")
