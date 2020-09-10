@@ -2,6 +2,7 @@
 
 """
     Example file to run an Experiment.
+    Everything  is lowercase!!!
 
     TODO: Indexing into the right higher level 
     block will require indexing like CUDA! blockDim.x * blockidx.X + ThreadIdx.x
@@ -20,15 +21,15 @@ class Colordict():
 
     def __init__(self):
         cdict = {}
-        cdict["House"] = tuple([0.921, 0.117, 0.137])   # Red
-        cdict["Pavement"] = tuple([0.662, 0.674, 0.647])   # Gray
-        cdict["Grass"] = tuple([0.384, 0.976, 0.411])
-        cdict["Tree"] = tuple([0.164, 0.576, 0.219])
-        cdict["Vehicle"] = tuple([0.172, 0.533, 0.866])
-        cdict["Urban"] = tuple([0.713, 0.207, 0.305])
-        cdict["Forest"] = tuple([0.149, 0.380, 0.141])
-        cdict["Road"] = tuple([0.49, 0.49, 0.49])
-        cdict["Grasslands"] = tuple([0.713, 0.89, 0.631])
+        cdict["house"] = tuple([0.921, 0.117, 0.137])   # Red
+        cdict["pavement"] = tuple([0.662, 0.674, 0.647])   # Gray
+        cdict["grass"] = tuple([0.384, 0.976, 0.411])
+        cdict["tree"] = tuple([0.164, 0.576, 0.219])
+        cdict["vehicle"] = tuple([0.172, 0.533, 0.866])
+        cdict["urban"] = tuple([0.713, 0.207, 0.305])
+        cdict["forest"] = tuple([0.149, 0.380, 0.141])
+        cdict["road"] = tuple([0.49, 0.49, 0.49])
+        cdict["grasslands"] = tuple([0.713, 0.89, 0.631])
         self.cdict = cdict
 
     def lookupcolor(self, cname):
@@ -40,26 +41,71 @@ class Colordict():
         except LookupError as e:
             raise e
 
-def createMap(n, m):
+def createMap(n, m, l):
     """
-        Function to create a map of size n x m
+        Function to create a map of size n x m x l
         returns a numpy array
         row-major
     """
+    return np.empty([n, m, l], dtype=object)
 
-    return np.empty([n, m], dtype=object)
+def createGTMap(n,m):
+    """
+        Function to create a ground truth map
+    """
+    return np.empty([n,m], dtype=object)
 
-def fillmap(gt, cd, scenario):
+def fillmap(gt, classlist, scenario):
     """
-        Helper function to create the ground truth map according to the 
+        Helper function to create the ground truth map according to the Scenario and the classlist
     """
-    pass
+    # Dimensions - n rows, m cols
+    n = gt.shape[0]
+    m = gt.shape[1]
+    if scenario==1:
+        # Divide columns into 4 sections
+        fourth = m//4
+
+        # First: Everything is grass
+        gt.fill("grass")
+        # second fourth is "pavement"
+        gt[:,1*fourth+1:2*fourth] = "pavement"
+
+        # in Fourth fourth, divide rows into 8 block
+        eigth = n//8
+        for i in range(eigth):
+            if i%2==0:
+                # Put houses into the even blocks
+                r_idx = i*eigth
+                gt[r_idx:r_idx+eigth,3*fourth:3*fourth+3] = "house"
+        
+        # In third block, put a few trees there
+        x = np.asarray(range(0,n,5))
+        gt[x,2*fourth+3] = "tree"
+
+        # In second Block, put two vehicles there
+        quat = m//4
+        gt[quat:quat+3,fourth+int(0.5*fourth)-2:fourth+int(0.5*fourth)] = "vehicle"
+        gt[2*quat:2*quat+3,fourth+int(0.5*fourth)+1:fourth+int(0.5*fourth)+3] = "vehicle"
+        
+    return gt
+    
 
 def visualize_map(gtmap, cd):
     """
         Function to visualize the map using matplotlib and the color codes defined in cd  
     """
-    pass
+    vis_map = np.empty((gtmap.shape[0],gtmap.shape[1], 3))
+    # Fill the word with the color
+    for j in range(gtmap.shape[0]):
+        for k in range(gtmap.shape[1]):
+            vis_map[j,k] = cd.lookupcolor(gtmap[j,k])
+
+    # visualize it with matplotlib imshow
+    fig, ax = plt.subplots()
+    ax.imshow(vis_map)
+    plt.show()
+
 
 def retrieveVisibleFields(wp, fov=1):
     """
@@ -143,14 +189,14 @@ if __name__=="__main__":
     fov = 2
 
     # n3 = m3 = max_map_size/(2)            Keep to 2 levels for now
-    gtmap = createMap(n1,m1)            # Ground Truth Map
-    l1map = createMap(n1,m1)            # belief map
-    l1_classlist = ["House", "Pavement", "Grass", "Tree", "Vehicle"]
-    l2_classlist = ["Urban", "Forest", "Road", "Grasslands"]
+    l1_classlist = ["house", "pavement", "grass", "tree", "vehicle"]
+    l2_classlist = ["urban", "forest", "road", "grasslands"]
+    gtmap = createGTMap(n1, m1)            # Ground Truth Map
+    l1map = createMap(n1, m1, len(l1_classlist))            # belief map
     
     # Making a Map
     cd = Colordict()
-    gtmap = fillmap(gtmap, "1")
+    gtmap = fillmap(gtmap, l1_classlist, 1)
     visualize_map(gtmap, cd)
     
     # Observation probabilites and waypoints
