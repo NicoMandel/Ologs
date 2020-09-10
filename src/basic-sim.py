@@ -15,6 +15,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import matplotlib.animation
 
 
 def colordf():
@@ -41,13 +42,13 @@ def createMap(n, m, l):
         returns a numpy array
         row-major
     """
-    return np.empty([n, m, l], dtype=object)
+    return np.empty((n, m, l), dtype=object)
 
 def createGTMap(n,m):
     """
         Function to create a ground truth map
     """
-    return np.empty([n,m], dtype=object)
+    return np.empty((n,m), dtype=object)
 
 def fillmap(gt, classlist, scenario):
     """
@@ -138,8 +139,8 @@ def getpattern(x_max, y_max, fov=1):
     """
 
     pattern = []
-    for i in range(y_max-fov):
-        for j in range(x_max-fov):
+    for i in range(fov-1, y_max-fov):
+        for j in range(fov-1, x_max-fov):
             next_wp = tuple([i,j])
             pattern.append(next_wp)
 
@@ -159,7 +160,7 @@ def updateprobab(obs, obs_probab, prior):
         for j in range(obs.shape[1]):
             pr = prior[i,j]
             vec = obs_probab.loc[obs[i,j],:]
-            po = vec*prior
+            po = vec*pr
             po = po/po.sum()
             post[i,j] = po
 
@@ -167,11 +168,14 @@ def updateprobab(obs, obs_probab, prior):
 
 def lookupColorFromPosterior(cdf, post, classlist):
     """
+        TODO: Fix the argmax thing
         Cdf is a dataframe with the color codes, Post a 3-dim. array with the posterior probabilities over the classes
         for each 2-dim cell
     """     
     col = np.empty((post.shape[0], post.shape[1], cdf.shape[0]))
-    idxmax = np.argmax(post, axis=2)
+    # print(post)
+    # print(col)
+    idxmax = np.argmax(post, axis=0)
     for i in range(idxmax.shape[0]):
         for j in range(idxmax.shape[1]):
             col[i,j] = cdf[classlist[idxmax[i,j]]]
@@ -189,12 +193,12 @@ def makeObs(gt, obs_probab, classlist):
         Returns an observation based on the Ground truth and the Observation probability
     """
 
-    obs = np.empty((obs_probab.shape[0], obs_probab.shape[1]))
+    obs = np.empty((gt.shape[0], gt.shape[1]), dtype='object')
     for i in range(gt.shape[0]):
         for j in range(gt.shape[1]):
             cl_name = gt[i,j]
             prob = obs_probab.loc[cl_name,:]
-            obs[i,j] = np.random.choice(classlist, p=prob)
+            obs[i,j] = np.random.choice(classlist, p=prob.to_numpy())
     return obs
 
 def entropy(vec):
@@ -205,13 +209,15 @@ def entropy(vec):
     return np.sum(np.dot(vec, lnvec)) * -1.0
 
 if __name__=="__main__":
+
+    #### Section 1 - Setup work
     cdf = colordf()
 
     max_map_size = 64
     blockDim = 2            # TODO: Indexing in the inverse hierarchical structure, similar to CUDA
     n1 = m1 = max_map_size
     n2 = m2 = max_map_size/2
-    fov = 2
+    fov = 1
 
     # n3 = m3 = max_map_size/(2)            Keep to 2 levels for now
     l1_classlist = np.asarray(["house", "pavement", "grass", "tree", "vehicle"])
@@ -221,7 +227,7 @@ if __name__=="__main__":
     
     # Making a Map
     gtmap = fillmap(gtmap, l1_classlist, 1)
-    gt_vismap = visualize_map(gtmap, cdf)
+    gt_vismap = visualize_map(gtmap, cdf, True)
     
     # Observation probabilites and waypoints
     obs_prob = observation_probabilities(l1_classlist)
@@ -236,45 +242,38 @@ if __name__=="__main__":
     l1map.fill(1.0/l1_classlist.size)
     l1map_vis = np.empty((l1map.shape[0], l1map.shape[1]), dtype="object")
 
-    # TODO: Visualisation, updating incrementally:
-        # Waypoints
-        # FoV
-        # Belief Map
-    fig, axes = plt.subplots(2, 2)
-    for idx, wp in enumerate(wps):
-        """
-            This is where the iterative updates take place. Using the Ground Truth data (gt), the observation likelihood and the prior over the previous map
-        """
-        # indices that are currently visible
-        x_min, x_max, y_min, y_max = retrieveVisibleFields(wp, fov=fov)
-        gt = gtmap[x_min:x_max, y_min:y_max]    #  Ground Truth
-        prior = l1map[x_min:x_max, y_min,y_max] # Prior
+    # SECTION 2: Visualisation
+    fig, axes = plt.subplots(1, 2)
+    axes[0].title.set_text("Ground Truth Map")
+    axes[1].title.set_text("Reconstructed Map")
 
-        # Make observation
-        obs = makeObs(gt, obs_prob, l1_classlist)
+    # TESTLINE
+    # def animate(i):
+    i = 3
+    # indices that are currently visible
+    x_min, x_max, y_min, y_max = retrieveVisibleFields(wps[i], fov=fov)
+    gt = gtmap[x_min:x_max, y_min:y_max]    #  Ground Truth
+    prior = l1map[x_min:x_max, y_min:y_max,:] # Prior
 
-        # how does the observed thing get incorporated into it?
-        posterior = updateprobab(obs, obs_prob, prior)
-        # Re-incorporate the information into the map
-        l1map[x_min:x_max, y_min:y_max] = posterior
-        post_vis = lookupColorFromPosterior(cdf, posterior)
-        l1map_vis[x_min:x_max, y_min:y_max] = post_vis
+    # Make observation
+    obs = makeObs(gt, obs_prob, l1_classlist)
 
+    # how does the observed thing get incorporated into it?
+    posterior = updateprobab(obs, obs_prob, prior)
+    # Re-incorporate the information into the map
+    l1map[x_min:x_max, y_min:y_max] = posterior
+    post_vis = lookupColorFromPosterior(cdf, posterior, l1_classlist)
+    l1map_vis[x_min:x_max, y_min:y_max] = post_vis
 
-        # Plotting section
-        axes[0].imshow(gt_vismap)
-        axes[0].set(title="Ground Truth Map")
+    # Plotting section
+    axes[0].clear()
+    axes[0].imshow(gt_vismap)
 
-        # Plotting the predicted classes
-        axes[1].imshow(l1map_vis)
-        axes[1].set(title="Predicted Map")
-        axes[0].draw()
-        axes[1].draw()
-        plt.show()
-        # clear the plots
-        axes[0].clear()
-        axes[1].clear()
-        
-         
+    # Plotting the predicted classes
+    axes[1].clear()
+    axes[1].imshow(l1map_vis)
+
+    ani = matplotlib.animation.FuncAnimation(fig, animate, frames=wps.shape[0], interval=1000, repeat=False)
+    plt.show()        
         
     print("Test Done")
