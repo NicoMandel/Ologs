@@ -136,13 +136,18 @@ def observation_probabilities(classlist, maxim=0.8):
 def getpattern(x_max, y_max, fov=1):
     """
         Function to return the pattern the agent will be moving. The agent sees x,y+fov and -fov+1  
+        TODO: Invert the order here
     """
-
     pattern = []
-    for i in range(fov-1, y_max-fov):
-        for j in range(fov-1, x_max-fov):
-            next_wp = tuple([i,j])
-            pattern.append(next_wp)
+    for i in range(fov-1, y_max-fov, fov):
+        if i%2==0:
+            for j in range(fov-1, x_max-fov, fov):
+                next_wp = tuple([i,j])
+                pattern.append(next_wp)
+        else:
+            for j in range(x_max-fov, fov-1, fov*-1):
+                next_wp = tuple([i,j])
+                pattern.append(next_wp)
 
     # Desired output: List of the form: [0,0], [1,0], [2, 0]
     return np.asarray(pattern)
@@ -175,7 +180,7 @@ def lookupColorFromPosterior(cdf, post, classlist):
     col = np.empty((post.shape[0], post.shape[1], cdf.shape[0]))
     # print(post)
     # print(col)
-    idxmax = np.argmax(post, axis=0)
+    idxmax = np.asarray(np.unravel_index(np.argmax(post, axis=2), post.shape))[2]
     for i in range(idxmax.shape[0]):
         for j in range(idxmax.shape[1]):
             col[i,j] = cdf[classlist[idxmax[i,j]]]
@@ -240,40 +245,51 @@ if __name__=="__main__":
 
     # Filling the PRIOR with values from the FUCKING SHIT FUCK FUCK FUCK
     l1map.fill(1.0/l1_classlist.size)
-    l1map_vis = np.empty((l1map.shape[0], l1map.shape[1]), dtype="object")
+    l1map_vis = np.ones((l1map.shape[0], l1map.shape[1], 4))
 
     # SECTION 2: Visualisation
     fig, axes = plt.subplots(1, 2)
-    axes[0].title.set_text("Ground Truth Map")
-    axes[1].title.set_text("Reconstructed Map")
+    t1 = "Ground Truth Map"
+    t2 = "Reconstructed Map"
+    axes[0].title.set_text(t1)
+    axes[1].title.set_text(t2)
 
     # TESTLINE
-    # def animate(i):
-    i = 3
-    # indices that are currently visible
-    x_min, x_max, y_min, y_max = retrieveVisibleFields(wps[i], fov=fov)
-    gt = gtmap[x_min:x_max, y_min:y_max]    #  Ground Truth
-    prior = l1map[x_min:x_max, y_min:y_max,:] # Prior
+    def animate(i):
+        # indices that are currently visible
+        x_min, x_max, y_min, y_max = retrieveVisibleFields(wps[i], fov=fov)
+        gt = gtmap[x_min:x_max, y_min:y_max]    #  Ground Truth
+        prior = l1map[x_min:x_max, y_min:y_max,:] # Prior
 
-    # Make observation
-    obs = makeObs(gt, obs_prob, l1_classlist)
+        # Make observation
+        obs = makeObs(gt, obs_prob, l1_classlist)
 
-    # how does the observed thing get incorporated into it?
-    posterior = updateprobab(obs, obs_prob, prior)
-    # Re-incorporate the information into the map
-    l1map[x_min:x_max, y_min:y_max] = posterior
-    post_vis = lookupColorFromPosterior(cdf, posterior, l1_classlist)
-    l1map_vis[x_min:x_max, y_min:y_max] = post_vis
+        # how does the observed thing get incorporated into it?
+        posterior = updateprobab(obs, obs_prob, prior)
+        # Re-incorporate the information into the map
+        l1map[x_min:x_max, y_min:y_max] = posterior
 
-    # Plotting section
-    axes[0].clear()
-    axes[0].imshow(gt_vismap)
+        # print(posterior)
+        # idxmax = np.asarray(np.unravel_index(np.argmax(posterior, axis=2), posterior.shape))[2]
+        # print(idxmax)
 
-    # Plotting the predicted classes
-    axes[1].clear()
-    axes[1].imshow(l1map_vis)
+        post_vis = lookupColorFromPosterior(cdf, posterior, l1_classlist)
+        l1map_vis[x_min:x_max, y_min:y_max] = post_vis
 
-    ani = matplotlib.animation.FuncAnimation(fig, animate, frames=wps.shape[0], interval=1000, repeat=False)
+        # Plotting section
+        axes[0].clear()
+        axes[0].imshow(gt_vismap)
+        axes[0].set(title=t1)
+
+        # Plotting the predicted classes
+        axes[1].clear()
+        axes[1].imshow(l1map_vis)
+        axes[1].scatter(wps[i,1], wps[i,0], s=20, c='red', marker='x')
+        axes[1].set(title=t2+"\tWaypoint: {}, at x: {}, y: {}".format(i, wps[i,1], wps[i,0]))
+        # axes[1].scatter(wps[0:i][0], wps[0:i][1], s=15, c='blue', marker='x')
+        # axes[1].scatter(wps[i:][0], wps[i:][1], s=15, c='black', marker='x')
+
+    ani = matplotlib.animation.FuncAnimation(fig, animate, frames=wps.shape[0], interval=10, repeat=False)
     plt.show()        
         
     print("Test Done")
