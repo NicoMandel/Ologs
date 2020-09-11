@@ -7,8 +7,6 @@
     TODO: Indexing into the right higher level 
     block will require indexing like CUDA! blockDim.x * blockidx.X + ThreadIdx.x
 
-    TODO: Turn this into an animation function for matplotlib simlar to the one I used last year
-
     # TODO: Color mapping of imshow of matplotlib through [this](https://matplotlib.org/3.1.0/api/_as_gen/matplotlib.pyplot.imshow.html)
 """
 
@@ -34,7 +32,6 @@ def colordf():
     df["road"] = [0.49, 0.49, 0.49, 1.0]
     df["grasslands"] = [0.713, 0.89, 0.631, 1.0]
     return df
-
 
 def createMap(n, m, l):
     """
@@ -85,7 +82,6 @@ def fillmap(gt, classlist, scenario):
         
     return gt
     
-
 def visualize_map(gtmap, cdf, returnarray=False):
     """
         Function to visualize the map using matplotlib and the color codes defined in cd  
@@ -141,11 +137,11 @@ def getpattern(x_max, y_max, fov=1):
     pattern = []
     for i in range(fov-1, y_max-fov, fov):
         if i%2==0:
-            for j in range(fov-1, x_max-fov, fov):
+            for j in range(fov-1, x_max-fov+1, fov):
                 next_wp = tuple([i,j])
                 pattern.append(next_wp)
         else:
-            for j in range(x_max-fov, fov-1, fov*-1):
+            for j in range(x_max-fov-1, fov-2, fov*-1):
                 next_wp = tuple([i,j])
                 pattern.append(next_wp)
 
@@ -206,6 +202,13 @@ def makeObs(gt, obs_probab, classlist):
             obs[i,j] = np.random.choice(classlist, p=prob.to_numpy())
     return obs
 
+def definel2probabilities(l2_classlist, l1_classlist):
+    """
+        Hand-Designed function for the second level
+    """
+    df = pd.DataFrame(index=l2_classlist, columns=l1_classlist)
+
+# Helper function - on the side
 def entropy(vec):
     """
         Function that returns the Entropy as the -1 * sum(p(x) * ln(p(x)))
@@ -221,31 +224,27 @@ if __name__=="__main__":
     max_map_size = 64
     blockDim = 2            # TODO: Indexing in the inverse hierarchical structure, similar to CUDA
     n1 = m1 = max_map_size
-    n2 = m2 = max_map_size/2
+    n2 = m2 = max_map_size//2
     fov = 1
 
-    # n3 = m3 = max_map_size/(2)            Keep to 2 levels for now
+    # First Level map
     l1_classlist = np.asarray(["house", "pavement", "grass", "tree", "vehicle"])
-    # l2_classlist = ["urban", "forest", "road", "grasslands"]
     gtmap = createGTMap(n1, m1)            # Ground Truth Map
     l1map = createMap(n1, m1, l1_classlist.size)            # belief map
-    
+    l1map.fill(1.0/l1_classlist.size)
+    l1map_vis = np.ones((l1map.shape[0], l1map.shape[1], 4))
     # Making a Map
     gtmap = fillmap(gtmap, l1_classlist, 1)
     gt_vismap = visualize_map(gtmap, cdf, True)
     
+    # Second Level Map:
+    l2_classlist = np.asarray(["urban", "forest", "road", "grasslands"])
+    l2map = createMap(n2, m2, l2_classlist.size)
+    l2probabs = definel2probabilities(l2_classlist, l1_classlist)
+       
     # Observation probabilites and waypoints
     obs_prob = observation_probabilities(l1_classlist)
     wps = getpattern(n1, m1, fov)      # Flight pattern
-
-    # iterative procedure from here on out
-    # last_wp = wps[-1]
-    # x_min, x_max, y_min, y_max = retrieveVisibleFields(last_wp, fov=fov)
-    # vis_fields = l1map[x_min:x_max, y_min:y_max]
-
-    # Filling the PRIOR with values from the FUCKING SHIT FUCK FUCK FUCK
-    l1map.fill(1.0/l1_classlist.size)
-    l1map_vis = np.ones((l1map.shape[0], l1map.shape[1], 4))
 
     # SECTION 2: Visualisation
     fig, axes = plt.subplots(1, 2)
@@ -254,7 +253,6 @@ if __name__=="__main__":
     axes[0].title.set_text(t1)
     axes[1].title.set_text(t2)
 
-    # TESTLINE
     def animate(i):
         # indices that are currently visible
         x_min, x_max, y_min, y_max = retrieveVisibleFields(wps[i], fov=fov)
@@ -269,9 +267,6 @@ if __name__=="__main__":
         # Re-incorporate the information into the map
         l1map[x_min:x_max, y_min:y_max] = posterior
 
-        # print(posterior)
-        # idxmax = np.asarray(np.unravel_index(np.argmax(posterior, axis=2), posterior.shape))[2]
-        # print(idxmax)
 
         post_vis = lookupColorFromPosterior(cdf, posterior, l1_classlist)
         l1map_vis[x_min:x_max, y_min:y_max] = post_vis
@@ -286,8 +281,8 @@ if __name__=="__main__":
         axes[1].imshow(l1map_vis)
         axes[1].scatter(wps[i,1], wps[i,0], s=20, c='red', marker='x')
         axes[1].set(title=t2+"\tWaypoint: {}, at x: {}, y: {}".format(i, wps[i,1], wps[i,0]))
-        # axes[1].scatter(wps[0:i][0], wps[0:i][1], s=15, c='blue', marker='x')
-        # axes[1].scatter(wps[i:][0], wps[i:][1], s=15, c='black', marker='x')
+        # axes[1].scatter(wps[0:i,1], wps[0:i,0], s=15, c='blue', marker='x')
+        # axes[1].scatter(wps[i+1:-1,1], wps[i+1:-1,0], s=15, c='black', marker='x')
 
     ani = matplotlib.animation.FuncAnimation(fig, animate, frames=wps.shape[0], interval=10, repeat=False)
     plt.show()        
