@@ -208,6 +208,45 @@ def definel2probabilities(l2_classlist, l1_classlist):
     """
     df = pd.DataFrame(index=l2_classlist, columns=l1_classlist)
 
+def pred_flat(fut_states, alpha=0.5):
+    """
+        Function to do a flat prediction. See File "bayes-discr-1D.py" in folder ../tmp for details
+    """
+
+    # find out how many cells still have a uniform prior
+    num_states = fut_states.shape[2]
+    unif_list = []
+    alr_obs_list = []
+    unif_vec = np.ones(num_states, dtype=float)/num_states
+    for i in range(fut_states.shape[0]):
+        for j in range(fut_states.shape[1]):
+            fut_state = fut_states[i,j]
+            # if the vector is uniform: 
+            if np.array_equal(unif_vec, fut_state):
+                unif_list.append(tuple([i,j]))
+            else:
+                alr_obs_list.append(tuple([i,j]))
+    # unif_ct is now the amount of cells that still have a uniform prior
+    map_size = fut_states.shape[0] * fut_states.shape[1]
+    unif_ct = len(unif_list)
+    rel_unif = unif_ct/map_size
+    # if the relative amount of uniform cells is small, the weight of the prior is small
+    new_pr = np.copy(fut_states)
+    unif_list = np.asarray(unif_list)
+    alr_obs_list = np.asarray(alr_obs_list)
+    n_vec = np.zeros(num_states)
+    for o_val in alr_obs_list:
+        new_val = fut_states[o_val[0], o_val[1]]
+        n_vec += (1.0/len(alr_obs_list)) * new_val.astype(float)
+    # old_states = fut_states[alr_obs_list]
+    # new_states = fut_states[unif_list]
+    # new_pr[alr_obs_list] = fut_states[alr_obs_list]
+    for upd_wp in unif_list:
+        # Find way to update this
+        new_pr[upd_wp[0], upd_wp[1]] = (1.0-alpha) * new_pr[upd_wp[0], upd_wp[1]] + alpha*n_vec
+    
+    return new_pr
+
 # Helper function - on the side
 def entropy(vec):
     """
@@ -230,9 +269,15 @@ if __name__=="__main__":
     # First Level map
     l1_classlist = np.asarray(["house", "pavement", "grass", "tree", "vehicle"])
     gtmap = createGTMap(n1, m1)            # Ground Truth Map
+    gtmap=gtmap.T
     l1map = createMap(n1, m1, l1_classlist.size)            # belief map
     l1map.fill(1.0/l1_classlist.size)
     l1map_vis = np.ones((l1map.shape[0], l1map.shape[1], 4))
+
+    # First level map used for prediction:
+    l1pred = np.copy(l1map)
+    l1pred_vis = np.copy(l1map_vis)
+
     # Making a Map
     gtmap = fillmap(gtmap, l1_classlist, 1)
     gt_vismap = visualize_map(gtmap, cdf, True)
@@ -247,11 +292,13 @@ if __name__=="__main__":
     wps = getpattern(n1, m1, fov)      # Flight pattern
 
     # SECTION 2: Visualisation
-    fig, axes = plt.subplots(1, 2)
+    fig, axes = plt.subplots(2, 2)
     t1 = "Ground Truth Map"
     t2 = "Reconstructed Map"
-    axes[0].title.set_text(t1)
-    axes[1].title.set_text(t2)
+    t3 = "Prediction Map"
+    axes[0,0].title.set_text(t1)
+    axes[0,1].title.set_text(t2)
+    axes[1,0].title.set_text(t3)
 
     def animate(i):
         # indices that are currently visible
@@ -259,30 +306,54 @@ if __name__=="__main__":
         gt = gtmap[x_min:x_max, y_min:y_max]    #  Ground Truth
         prior = l1map[x_min:x_max, y_min:y_max,:] # Prior
 
+        # Prior for the prediction map
+        prior_pred = l1pred[x_min:x_max, y_min:y_max,:]
+
         # Make observation
         obs = makeObs(gt, obs_prob, l1_classlist)
 
         # how does the observed thing get incorporated into it?
         posterior = updateprobab(obs, obs_prob, prior)
+        # Posterior for the prediction map:
+        post_pred = updateprobab(obs, obs_prob, prior_pred)
+        
         # Re-incorporate the information into the map
         l1map[x_min:x_max, y_min:y_max] = posterior
+        # Re-incorporate into the prediction map
+        l1pred[x_min:x_max, y_min:y_max] = post_pred
 
+        # Prediction step
+        xmin_pred, xmax_pred, ymin_pred, ymax_pred = retrieveVisibleFields(wps[i+1], fov=fov)
+        fut_states = l1pred[xmin_pred:xmax_pred, ymin_pred:ymax_pred]
+        nstates = pred_flat(fut_states)
+        # Re-incorporate prediction-values into the map 
+        l1pred[xmin_pred:xmax_pred, ymin_pred:ymax_pred] = nstates
 
+        # Do the visibility lookup
         post_vis = lookupColorFromPosterior(cdf, posterior, l1_classlist)
         l1map_vis[x_min:x_max, y_min:y_max] = post_vis
 
+        # Do the visibility lookup for the prediction - map
+        post_pred_vis = lookupColorFromPosterior(cdf, post_pred, l1_classlist)
+        l1pred_vis[x_min:x_max, y_min:y_max] = post_pred_vis
+
         # Plotting section
-        axes[0].clear()
-        axes[0].imshow(gt_vismap)
-        axes[0].set(title=t1)
+        axes[0,0].clear()
+        axes[0,0].imshow(gt_vismap)
+        axes[0,0].set(title=t1)
 
         # Plotting the predicted classes
-        axes[1].clear()
-        axes[1].imshow(l1map_vis)
-        axes[1].scatter(wps[i,1], wps[i,0], s=20, c='red', marker='x')
-        axes[1].set(title=t2+"\tWaypoint: {}, at x: {}, y: {}".format(i, wps[i,1], wps[i,0]))
+        axes[0,1].clear()
+        axes[0,1].imshow(l1map_vis)
+        axes[0,1].scatter(wps[i,1], wps[i,0], s=20, c='red', marker='x')
+        axes[0,1].set(title=t2+"\tWaypoint: {}, at x: {}, y: {}".format(i, wps[i,1], wps[i,0]))
         # axes[1].scatter(wps[0:i,1], wps[0:i,0], s=15, c='blue', marker='x')
         # axes[1].scatter(wps[i+1:-1,1], wps[i+1:-1,0], s=15, c='black', marker='x')
+
+        axes[1,0].clear()
+        axes[1,0].imshow(l1pred_vis)
+        axes[1,0].set(title=t3)
+
 
     ani = matplotlib.animation.FuncAnimation(fig, animate, frames=wps.shape[0], interval=10, repeat=False)
     plt.show()        
