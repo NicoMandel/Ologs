@@ -255,6 +255,13 @@ def entropy(vec):
     lnvec = np.log(vec)
     return np.sum(np.dot(vec, lnvec)) * -1.0
 
+def cross_entropy(vec_true, vec_pred):
+    """
+        cross entropy loss for a single element. Following the definition of:
+        https://youtu.be/ErfnhcEV1O8?t=579
+    """
+    return np.sum(vec_true*np.log(vec_pred)) * (-1.0)
+
 if __name__=="__main__":
 
     #### Section 1 - Setup work
