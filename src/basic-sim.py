@@ -15,7 +15,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import matplotlib.animation
 
-
 def colordf():
     """
         Helper Function to turn the colors into a DatFrame - for ease of lookup with np
@@ -246,6 +245,17 @@ def pred_flat(fut_states, alpha=0.5):
         new_pr[upd_wp[0], upd_wp[1]] = (1.0-alpha) * new_pr[upd_wp[0], upd_wp[1]] + alpha*n_vec
     
     return new_pr
+
+def assign_prior(map1, areadist_vec, area_class_mat):
+    """
+        function to assign a more informed prior - sum over the assumed distribution of areas multiplied by the observation probability of that class
+        p(t|u) = p(u|t) * p(t) / p(t) || with p(t) = sum(p(u|t) p(t))
+    """
+    vec = areadist_vec.T @ area_class_mat
+    map1[...,:] = vec
+    return map1
+
+
 
 # Helper function - on the side
 def entropy(vec):
