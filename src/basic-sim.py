@@ -264,7 +264,15 @@ def pred_informed(fut_states, init_vector):
     r_obs = obs_cells.shape[0] / num_cells
     # obs = fut_states[~x]
     num_obs = fut_states[obs_cells[:,0], obs_cells[:,1], -1]
-    # TODO: CONTINUE HERE
+
+    ### Alternative for finding the cells that have not been observed:
+    m_counts = fut_states[...,-1]
+    tot_counts = m_counts.sum()
+    zer_cells = np.argwhere(m_counts < 1e-3)
+    nzer_cells = np.nonzero(m_counts)
+    # TODO: Continue here
+    # use the value of the counts to multiply the probability and then normalise it. Also use the amount of unobserved cells.
+
 
 
 def get_map_counts(map1):
