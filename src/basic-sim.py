@@ -246,6 +246,40 @@ def pred_flat(fut_states, alpha=0.5):
     
     return new_pr
 
+# TODO in here!
+def pred_informed(fut_states, init_vector):
+    """
+        A more informed version to predict the states of the next cell.
+        See "bayes-discr-1D.py" in folder ../tmp for details
+        Record an extra value for the number of observations per cell at the end of the map vector. This number is then used to weight the prediction of the next cell
+        requires the initial vector used to construct the array
+        inverse indexing following this example: https://stackoverflow.com/questions/25330959/how-to-select-inverse-of-indexes-of-a-numpy-array
+    """
+    num_states = fut_states.shape[2]-1
+    num_cells = fut_states.shape[0] * fut_states.shape[1]
+    # unif_vec = np.ones(num_states, dtype=float)/num_states
+    _z = np.isin(fut_states[...,:-1], init_vector, True)
+    n_obs_cells = np.transpose(np.all(_z,axis=2).nonzero())
+    obs_cells = np.transpose(np.all(~_z, axis=2).nonzero())
+    r_obs = obs_cells.shape[0] / num_cells
+    # obs = fut_states[~x]
+    num_obs = fut_states[obs_cells[:,0], obs_cells[:,1], -1]
+    # TODO: CONTINUE HERE
+
+
+def get_map_counts(map1):
+    """
+        Function to return the (relative) counts of each class available in the map.
+        For evaluation with priors
+        Requires a 3D map, where the 3rd dimension is a vector of 0s and ones and it counts the 1s
+    """
+    n_cells = map1.shape[0] * map1.shape[1]
+    out = np.count_nonzero(map1, axis=(0,1)) / n_cells
+    return out
+
+
+
+
 def assign_prior(map1, areadist_vec, area_class_mat):
     """
         function to assign a more informed prior - sum over the assumed distribution of areas multiplied by the observation probability of that class
@@ -254,8 +288,6 @@ def assign_prior(map1, areadist_vec, area_class_mat):
     vec = areadist_vec.T @ area_class_mat
     map1[...,:] = vec
     return map1
-
-
 
 # Helper function - on the side
 def entropy(vec):
