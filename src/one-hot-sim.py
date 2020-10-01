@@ -101,21 +101,28 @@ def vis_idx_map(gtmap, carr):
     # Alternative one-liner, not tested
     # outmap[...-1]=carr[np.nonzero(gtmap)]
 
-def lookupColorFromPosterior(cdf, post, classlist):
+def lookupColorFromPosterior(carr, post):
     """
-        TODO: Fix the argmax thing
-        Cdf is a dataframe with the color codes, Post a 3-dim. array with the posterior probabilities over the classes
+        Carr is an array with the appropriate color codes, Post a 3-dim. array with the posterior probabilities over the classes
         for each 2-dim cell
     """     
-    col = np.empty((post.shape[0], post.shape[1], cdf.shape[0]))
-    # print(post)
-    # print(col)
+    col = np.empty((post.shape[0], post.shape[1], 4))
     idxmax = np.asarray(np.unravel_index(np.argmax(post, axis=2), post.shape))[2]
     for i in range(idxmax.shape[0]):
         for j in range(idxmax.shape[1]):
-            col[i,j] = cdf[classlist[idxmax[i,j]]]
+            col[i,j] = carr[idxmax[i,j]]
     # alternative: col = cdf[classlist[np.argmax(post, axis=2)]]
     return col
+    
+def get_map_counts(map1):
+    """
+        Function to return the (relative) counts of each class available in the map.
+        For evaluation with priors
+        Requires a 3D map, where the 3rd dimension is a vector of 0s and ones and it counts the 1s
+    """
+    n_cells = map1.shape[0] * map1.shape[1]
+    out = np.count_nonzero(map1, axis=(0,1)) / n_cells
+    return out
 
 # Sampling Functions
 def observation_probabilities(classlist, maxim=0.8):
@@ -156,8 +163,8 @@ def gensampleidx(gt, obs_probab):
         for j in range(gt.shape[1]):    
             idx = np.nonzero(gt[i,j])
             p = obs_prob[idx] 
-            samples[i,j] = np.random.choice(sam, p=p)
-    return samples
+            samples[i,j] = np.random.choice(sam, p=p[0])
+    return samples.astype(np.int)
 
 # Prediction Functions
 def pred_flat(fut_states, alpha=0.5):
@@ -199,45 +206,29 @@ def pred_flat(fut_states, alpha=0.5):
     
     return new_pr
 
-def pred_informed(fut_states, init_vector):
+def pred_dir(fut_states):
     """
-        A more informed version to predict the states of the next cell.
+        A more informed version to predict the states of the next cell, using the dirichlet alpha values
         See "bayes-discr-1D.py" in folder ../tmp for details
-        Record an extra value for the number of observations per cell at the end of the map vector. This number is then used to weight the prediction of the next cell
-        requires the initial vector used to construct the array
         inverse indexing following this example: https://stackoverflow.com/questions/25330959/how-to-select-inverse-of-indexes-of-a-numpy-array
     """
-    num_states = fut_states.shape[2]-1
+    num_states = fut_states.shape[2]
     num_cells = fut_states.shape[0] * fut_states.shape[1]
-    # unif_vec = np.ones(num_states, dtype=float)/num_states
-    _z = np.isin(fut_states[...,:-1], init_vector, True)
-    n_obs_cells = np.transpose(np.all(_z,axis=2).nonzero())
-    obs_cells = np.transpose(np.all(~_z, axis=2).nonzero())
-    r_obs = obs_cells.shape[0] / num_cells
-    # obs = fut_states[~x]
-    num_obs = fut_states[obs_cells[:,0], obs_cells[:,1], -1]
+    test_vec = np.ones(num_states)
+    # n_obs_cells = np.logical_and.reduce(fut_states == test_vec, axis = -1).nonzero()
+    # x = np.array_equal(fut_states, test_vec)
+    n_obs_cells = np.all(np.isin(fut_states, test_vec), axis=-1).nonzero()
+    obs_cells = np.invert(np.all(np.isin(fut_states, test_vec), axis=-1)).nonzero()
+    # _z = np.isin(fut_states, test_vec)
+    # n_obs_cells = np.transpose(np.all(_z,axis=2).nonzero())    
+    # obs_cells = np.transpose(np.all(~_z, axis=2).nonzero())
+    x = fut_states[obs_cells].sum(axis=0) / len(obs_cells)
+    _x = fut_states[n_obs_cells].sum(axis=0) / len(n_obs_cells)
+    r_obs = len(obs_cells) / num_cells          # This is the lam mixing parameter 
+    pred_states = r_obs * x + (1-r_obs) * _x
+    fut_states[n_obs_cells,-1] = pred_states
+    return fut_states
 
-    ### Alternative for finding the cells that have not been observed:
-    m_counts = fut_states[...,-1]
-    tot_counts = m_counts.sum()
-    zer_cells = np.argwhere(m_counts < 1e-3)
-    # nzer_cells = np.nonzero(m_counts)
-    # TODO: Continue here
-    # use the value of the counts to multiply the probability and then normalise it. Also use the amount of unobserved cells.
-    mc_norm = m_counts / tot_counts         # m_counts for the unobserved cells are 0, therefore we get 0 for these anyways
-    pr = mc_norm * fut_states
-    fut_states[zer_cells,:-1] = pr
-    return fut_states 
-    
-def get_map_counts(map1):
-    """
-        Function to return the (relative) counts of each class available in the map.
-        For evaluation with priors
-        Requires a 3D map, where the 3rd dimension is a vector of 0s and ones and it counts the 1s
-    """
-    n_cells = map1.shape[0] * map1.shape[1]
-    out = np.count_nonzero(map1, axis=(0,1)) / n_cells
-    return out
 
 def assign_prior(map1, areadist_vec, area_class_mat):
     """
@@ -268,7 +259,7 @@ def updateprobab(obs, obs_probab, prior):
         for j in range(obs.shape[1]):
             pr = prior[i,j]
             # TODO: Adapt this line!
-            vec = obs_probab.loc[obs[i,j],:]
+            vec = obs_probab[obs[i,j]]
             po = vec*pr
             po = po/po.sum()
             post[i,j] = po
@@ -281,7 +272,7 @@ def updateDir(obs, prior):
     """
     for i in range(obs.shape[0]):
         for j in range(obs.shape[1]):
-            prior[i,j,obs[i,j]] += 1
+            prior[i,j,obs[i,j].astype(int)] += 1
     return prior
     # Alternative:
     # prior[...,obs[i,j]]+=1
@@ -364,8 +355,9 @@ if __name__=="__main__":
     flatmap = np.copy(predmap)   
 
     # Maps that are used for visualisation
-    map_vis = vis_idx_map(gtmap, carr)
-    dirmap_vis = np.ones_like(map_vis)
+    gt_vis = vis_idx_map(gtmap, carr)
+    dirmap_vis = np.ones_like(gt_vis)
+    map_vis = np.copy(dirmap_vis)
     pred_vis = np.copy(dirmap_vis)
        
     # Observation probabilites and waypoints
@@ -404,41 +396,46 @@ if __name__=="__main__":
         predmap[x_min:x_max, y_min:y_max] = post_pred
         dirmap[x_min:x_max, y_min:y_max] = post_dir
 
-
         # Predict the next step
         xmin_pred, xmax_pred, ymin_pred, ymax_pred = retrieveVisibleFields(wps[i+1], fov=fov)
-        fut_states = l1pred[xmin_pred:xmax_pred, ymin_pred:ymax_pred]
-        nstates = pred_flat(fut_states)
+        fustates = predmap[xmin_pred:xmax_pred, ymin_pred:ymax_pred]
+        fustates_dir = dirmap[xmin_pred:xmax_pred, ymin_pred:ymax_pred]
+        nst_pred = pred_flat(fustates)
+        nst_dir = pred_dir(fustates_dir)
         # Re-incorporate prediction-values into the map 
-        l1pred[xmin_pred:xmax_pred, ymin_pred:ymax_pred] = nstates
+        predmap[xmin_pred:xmax_pred, ymin_pred:ymax_pred] = nst_pred
+        dirmap[xmin_pred:xmax_pred, ymin_pred:ymax_pred] = nst_dir
 
         # Do the visibility lookup
-        post_vis = lookupColorFromPosterior(cdf, posterior, l1_classlist)
-        l1map_vis[x_min:x_max, y_min:y_max] = post_vis
-
-        # Do the visibility lookup for the prediction - map
-        post_pred_vis = lookupColorFromPosterior(cdf, post_pred, l1_classlist)
-        l1pred_vis[x_min:x_max, y_min:y_max] = post_pred_vis
+        post_vis = lookupColorFromPosterior(carr, post_flat)
+        map_vis[x_min:x_max, y_min:y_max] = post_vis
+        post_pred_vis = lookupColorFromPosterior(carr, post_pred)
+        pred_vis[x_min:x_max, y_min:y_max] = post_pred_vis
+        post_dir_vis = lookupColorFromPosterior(carr, post_dir)
+        dirmap_vis[x_min:x_max, y_min:y_max] = post_dir_vis
 
         # Plotting section
         axes[0,0].clear()
-        axes[0,0].imshow(gt_vismap)
+        axes[0,0].imshow(gt_vis)
         axes[0,0].set(title=t1)
-
-        # Plotting the predicted classes
         axes[0,1].clear()
-        axes[0,1].imshow(l1map_vis)
+        axes[0,1].imshow(map_vis)
         axes[0,1].scatter(wps[i,1], wps[i,0], s=20, c='red', marker='x')
-        axes[0,1].set(title=t2+"\tWaypoint: {}, at x: {}, y: {}".format(i, wps[i,1], wps[i,0]))
+        axes[0,1].set(title=t2+" Waypoint: {}, at x: {}, y: {}".format(i, wps[i,1], wps[i,0]))
         # axes[1].scatter(wps[0:i,1], wps[0:i,0], s=15, c='blue', marker='x')
         # axes[1].scatter(wps[i+1:-1,1], wps[i+1:-1,0], s=15, c='black', marker='x')
-
+        # Plotting the predicted classes
         axes[1,0].clear()
-        axes[1,0].imshow(l1pred_vis)
+        axes[1,0].imshow(pred_vis)
         axes[1,0].set(title=t3)
-
+        axes[1,1].clear()
+        axes[1,1].imshow(dirmap_vis)
+        axes[1,1].set(title=t4)
 
     ani = matplotlib.animation.FuncAnimation(fig, animate, frames=wps.shape[0]-1, interval=10, repeat=False)
     plt.show()        
-        
+
+    #TODO: Evaluation function for the cross-entropy
+    # 
+    #TODO: plotting function for cross-entropy
     print("Test Done")
