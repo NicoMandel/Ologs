@@ -384,18 +384,18 @@ if __name__=="__main__":
     wps = getpattern(n1, m1, fov)      # Flight pattern
 
     # SECTION 2: Visualisation prelims
-    fig, axes = plt.subplots(2, 2)
+    # fig, axes = plt.subplots(2, 2)
     t1 = "Ground Truth Map"
     t2 = "Reconstructed Map"
     t3 = "Prediction Map"
     t4 = "Dirichlet Map"
-    axes[0,0].title.set_text(t1)
-    axes[0,1].title.set_text(t2)
-    axes[1,0].title.set_text(t3)
-    axes[1,1].title.set_text(t4)
+    # axes[0,0].title.set_text(t1)
+    # axes[0,1].title.set_text(t2)
+    # axes[1,0].title.set_text(t3)
+    # axes[1,1].title.set_text(t4)
 
-    # for i in range(wps.shape[0]-1):
-    def animate(i):
+    for i in range(wps.shape[0]-1):
+    # def animate(i):
         # indices that are currently visible
         x_min, x_max, y_min, y_max = retrieveVisibleFields(wps[i], fov=fov)
         gt = gtmap[x_min:x_max, y_min:y_max]    #  Ground Truth area
@@ -435,26 +435,26 @@ if __name__=="__main__":
         post_dir_vis = lookupColorFromPosterior(carr, post_dir)
         dirmap_vis[x_min:x_max, y_min:y_max] = post_dir_vis
 
-        # # Plotting section
-        axes[0,0].clear()
-        axes[0,0].imshow(gt_vis)
-        axes[0,0].set(title=t1)
-        axes[0,1].clear()
-        axes[0,1].imshow(map_vis)
-        axes[0,1].scatter(wps[i,1], wps[i,0], s=20, c='red', marker='x')
-        axes[0,1].set(title=t2+" Waypoint: {}, at x: {}, y: {}".format(i, wps[i,1], wps[i,0]))
-        # axes[1].scatter(wps[0:i,1], wps[0:i,0], s=15, c='blue', marker='x')
-        # axes[1].scatter(wps[i+1:-1,1], wps[i+1:-1,0], s=15, c='black', marker='x')
-        # Plotting the predicted classes
-        axes[1,0].clear()
-        axes[1,0].imshow(pred_vis)
-        axes[1,0].set(title=t3)
-        axes[1,1].clear()
-        axes[1,1].imshow(dirmap_vis)
-        axes[1,1].set(title=t4)
+    #     # # Plotting section
+    #     axes[0,0].clear()
+    #     axes[0,0].imshow(gt_vis)
+    #     axes[0,0].set(title=t1)
+    #     axes[0,1].clear()
+    #     axes[0,1].imshow(map_vis)
+    #     axes[0,1].scatter(wps[i,1], wps[i,0], s=20, c='red', marker='x')
+    #     axes[0,1].set(title=t2+" Waypoint: {}, at x: {}, y: {}".format(i, wps[i,1], wps[i,0]))
+    #     # axes[1].scatter(wps[0:i,1], wps[0:i,0], s=15, c='blue', marker='x')
+    #     # axes[1].scatter(wps[i+1:-1,1], wps[i+1:-1,0], s=15, c='black', marker='x')
+    #     # Plotting the predicted classes
+    #     axes[1,0].clear()
+    #     axes[1,0].imshow(pred_vis)
+    #     axes[1,0].set(title=t3)
+    #     axes[1,1].clear()
+    #     axes[1,1].imshow(dirmap_vis)
+    #     axes[1,1].set(title=t4)
 
-    ani = matplotlib.animation.FuncAnimation(fig, animate, frames=wps.shape[0]-1, interval=10, repeat=False)
-    plt.show()        
+    # ani = matplotlib.animation.FuncAnimation(fig, animate, frames=wps.shape[0]-1, interval=10, repeat=False)
+    # plt.show()        
 
     # Setting up the entropy arrays
     dir_mode = np.ones_like(gtmap)
