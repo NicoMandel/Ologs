@@ -34,7 +34,7 @@ def colorarr():
     vehicle = [0.172, 0.533, 0.866, 1.0]
     return np.asarray([house, pavement, grass, tree, vehicle])
 
-def fillmap_idx(gt, classlist, scenario=1):
+def fillmap_idx(gt, classlist, scenario=1, transpose=False):
     """
         Helper function to create the ground truth map, with the classlist indicies
         Indices:
@@ -80,8 +80,11 @@ def fillmap_idx(gt, classlist, scenario=1):
         gt[quat:quat+3,fourth+int(0.5*fourth)-2:fourth+int(0.5*fourth),:] = vehicle
         gt[2*quat:2*quat+3,fourth+int(0.5*fourth)+1:fourth+int(0.5*fourth)+3,:] = vehicle
     
-    return np.swapaxes(gt,0,1)
-
+    if transpose:
+        return np.swapaxes(gt,0,1)
+    else:
+        return gt
+        
 def vis_idx_map(gtmap, carr):
     """
         Function to turn a one-hot vector map into something displayable by imshow.
