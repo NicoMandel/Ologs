@@ -80,7 +80,7 @@ def fillmap_idx(gt, classlist, scenario=1):
         gt[quat:quat+3,fourth+int(0.5*fourth)-2:fourth+int(0.5*fourth),:] = vehicle
         gt[2*quat:2*quat+3,fourth+int(0.5*fourth)+1:fourth+int(0.5*fourth)+3,:] = vehicle
     
-    return gt
+    return np.swapaxes(gt,0,1)
 
 def vis_idx_map(gtmap, carr):
     """
