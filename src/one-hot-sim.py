@@ -229,7 +229,6 @@ def pred_dir(fut_states):
     fut_states[n_obs_cells,-1] = pred_states
     return fut_states
 
-
 def assign_prior(map1, areadist_vec, area_class_mat):
     """
         function to assign a more informed prior - sum over the assumed distribution of areas multiplied by the observation probability of that class
@@ -319,6 +318,23 @@ def cross_entropy(vec_true, vec_pred):
     """
     return np.sum(vec_true*np.log(vec_pred)) * (-1.0)
 
+# Dirichlet functions
+def dirichlet_mode(vec_a):
+    """
+        Calculation of the mode of the dirichlet, coming from Wikipedia
+    """
+    mode = np.zeros_like(vec_a)
+    a0 = vec_a.sum()
+    k = vec_a.size
+    mode = (vec_a - 1) / (a0 - k)
+    return mode
+
+def dirichlet_expected(vec_a):
+    """
+        Expected value of the dirichlet distribution - coming from Wikipedia
+    """
+    return vec_a / vec_a.sum()
+
 # Testing functions
 def testonehot():
     """
@@ -375,6 +391,7 @@ if __name__=="__main__":
     axes[1,0].title.set_text(t3)
     axes[1,1].title.set_text(t4)
 
+    # for i in range(wps.shape[0]-1):
     def animate(i):
         # indices that are currently visible
         x_min, x_max, y_min, y_max = retrieveVisibleFields(wps[i], fov=fov)
@@ -402,6 +419,7 @@ if __name__=="__main__":
         fustates_dir = dirmap[xmin_pred:xmax_pred, ymin_pred:ymax_pred]
         nst_pred = pred_flat(fustates)
         nst_dir = pred_dir(fustates_dir)
+
         # Re-incorporate prediction-values into the map 
         predmap[xmin_pred:xmax_pred, ymin_pred:ymax_pred] = nst_pred
         dirmap[xmin_pred:xmax_pred, ymin_pred:ymax_pred] = nst_dir
@@ -414,7 +432,7 @@ if __name__=="__main__":
         post_dir_vis = lookupColorFromPosterior(carr, post_dir)
         dirmap_vis[x_min:x_max, y_min:y_max] = post_dir_vis
 
-        # Plotting section
+        # # Plotting section
         axes[0,0].clear()
         axes[0,0].imshow(gt_vis)
         axes[0,0].set(title=t1)
@@ -435,7 +453,39 @@ if __name__=="__main__":
     ani = matplotlib.animation.FuncAnimation(fig, animate, frames=wps.shape[0]-1, interval=10, repeat=False)
     plt.show()        
 
-    #TODO: Evaluation function for the cross-entropy
-    # 
-    #TODO: plotting function for cross-entropy
+    # Setting up the entropy arrays
+    dir_mode = np.ones_like(gtmap)
+    dir_exp = np.ones_like(gtmap)
+    
+    dir_e_e = np.zeros((gtmap.shape[0], gtmap.shape[1]))
+    dir_m_e = np.copy(dir_e_e)
+    pred_e = np.copy(dir_e_e)
+    flat_e = np.copy(dir_e_e)
+    
+    # Looping over all map elements
+    for i in range(gtmap.shape[0]):
+        for j in range(gtmap.shape[1]):
+            dir_mode[i,j] = dirichlet_mode(dirmap[i,j,:])
+            dir_exp[i,j] = dirichlet_expected(dirmap[i,j,:])
+
+            # getting the Ground truth vector for the entropy
+            gt = gtmap[i,j,:]
+            dir_e_e[i,j] = cross_entropy(gt, dir_exp[i,j,:])
+            dir_m_e[i,j] = cross_entropy(gt, dir_mode[i,j,:])
+            pred_e[i,j] = cross_entropy(gt, predmap[i,j,:])
+            flat_e[i,j] = cross_entropy(gt, flatmap[i,j,:])
+
+    # Plotting the cross-entropy
+    fig2 = plt.figure()
+    ax = fig2.gca()
+    x = np.arange(flat_e.shape[0] * flat_e.shape[1])
+    # ax.plot(x, dir_e_e.flatten(), alpha=0.5, label="Dirichlet Expected")
+    # ax.plot(x, dir_m_e.flatten(), '--', alpha=0.5, label="Dirichlet Mode")
+    ax.plot(x, flat_e.flatten(), '-.', alpha=0.5, label="Flat Updates")
+    ax.plot(x, pred_e.flatten(), ':', alpha=0.5, label="Predicted")
+    ax.legend()
+    # for i in range(max_map_size):
+    #     plt.axvline(i * max_map_size, ls='--')
+    plt.show()
+
     print("Test Done")
