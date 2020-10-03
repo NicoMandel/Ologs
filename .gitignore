@@ -9,6 +9,9 @@
 **/*.pyc
 *.pdf
 
+# lock files
+**/.~*#
+
 # Things from tex.gitignore, see github original
 ## Core latex/pdflatex auxiliary files:
 *.aux

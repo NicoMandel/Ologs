@@ -313,6 +313,13 @@ def getpattern(x_max, y_max, fov=1):
     # Desired output: List of the form: [0,0], [1,0], [2, 0]
     return np.asarray(pattern)
 
+def getpatternstride(x_max, y_max, stride, overlap, fov=1):
+    """
+        Function to return the lawnmower pattern. Requires stride and overlap
+        See tests in "strideoverlap.py" in tmp
+    """
+    pass
+
 # Evaluation
 def cross_entropy(vec_true, vec_pred):
     """
@@ -361,7 +368,7 @@ if __name__=="__main__":
     carr = colorarr()
     max_map_size = 64
     n1 = m1 = max_map_size
-    fov = 1
+    fov = 2
 
     # First Level map
     classlist = np.asarray(["house", "pavement", "grass", "tree", "vehicle"])

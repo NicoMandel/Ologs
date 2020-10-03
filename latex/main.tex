@@ -6,7 +6,17 @@
 % NOTE: The .cls file is now compatible with amsmath!!!
 
 \usepackage[]{graphicx}    % We use this package in this document
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    filecolor=black,      
+    urlcolor=black,
+    citecolor=black,
+    % draft,
+}
 \newcommand{\ignore}[1]{}  % {} empty inside = %% comment
+\newcommand\todo[1]{\textbf{\textcolor{red}{#1}}}
 \graphicspath{{imgs/}}
 
 \begin{document}
@@ -19,7 +29,12 @@ Australian Centre for Robotic Vision\\
 QUT Centre for Robotics\\
 nicolasjohann.mandel@hdr.qut.edu.au
 \and 
-Sophie Taylor\\
+Michael Milford\\
+Queenslad University of Technology\\
+Nowhere, ZS 99999\\
+jane.smith@nowhere.edu
+\and
+Felipe Gonzalez\\
 Queenslad University of Technology\\
 Nowhere, ZS 99999\\
 jane.smith@nowhere.edu
@@ -54,13 +69,39 @@ Limitations in power, size and weight in UAVs have resulted in researchers explo
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Introduction} \label{sec:Intro}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Some schmeel here will have to introduce the main stuff about why this is useful and we consider it some great work. The usual stuff.\\
-This file is a copy of the ''Example.tex'' file, which still contains all the info about which sections do what and so forth. I have just deleted them from this document to keep this as a working version.\\
-The first section is a brief summary of current works in the literature that I have come across.~\cite{alirezaie_exploiting_2017}
 
+\subsection{Problem Introduction}
+
+\subsection{Why is this problem important}
+Contemporary robotics places great emphasis on including semantic signals into the perception-understanding-control-pipeline. Semantic information has been included into the passive part of SLAM~\cite{cadena_past_2016,zhang_hierarchical_2019}, as well as into the active decision~\cite{koch_automatic_2019,alirezaie_exploiting_2017}. Kostavelis and Gasteratos define semantics as " [...] related to the study between signs and the things to which they refer, that is their meaning."~\cite{kostavelis_semantic_2015}. However, in terms of spatial occurrence, multiple levels of signals are possible, such as individual objects, regions or areas~\cite{kostavelis_semantic_2015}. These occurences cause novel problems for definining successful navigation, as highlighted by Anderson et al.~\cite{anderson_evaluation_2018}. Furthermore, recent advances in Computer Vision have produced a wide range of different sensors signals to be annotated with semantic information, such as pixel-level segmentation, object detection or scene classification~\cite{alom_history_2018}, which operate on different spatial levels.\\
+The influence of these novel signals on the level of names on conventional robotics algorithms, such as filters and path planners, is an active field of research. Furthermore, UAVs represent a special case of robotics, which are impacted by unique viewing angles, as well as risk-averse requirements.
+\subsection{What do we propose for solving it}
+In this paper we provide an overview of a selected subset of the literature on combining semantic signals with spatial information in robotics to illustrate the evolution of the field with novel algorithms information, specifically in the context of UAVs. First, we provide a brief overview of early approaches from the turn of the century. Second, we display a select subset of contemporary approaches, which include semantic information into novel algorithms. Third, we highlight approaches that incorporate semantic information into UAV pipelines.\\
+In the second section we conduct numerical experiments on the well-defined problem of semantic mapping of a two-dimensional occupancy grid~\cite{gonzalez_unmanned_2016} and show how conventional parameters surrounding the quality of observations, overlap and flight speed influence a naive bayesian filter. We supplement the filter through an informed prior and demonstrate the effectiveness and shortcomings of the approach.\\
+As a future prospect, we briefly point to approaches from related semantic fields, such as speech recognition and language processing, which hold the potential to enhance the inclusion of semantic information.\todo{cite lienou - semantic annotation of satellite images using LDA}.
 \section{Literature Summary} \label{sec:Lit}
+\subsection{Historic Literature} \label{subsec:LitHist}
 
+\subsection{Contemporary Literature}
 
+\subsection{UAV Literature}
+
+% \subsection{Literature on Hierarchical models from NLP}
+
+\section{Methodology} \label{sec:Met}
+\subsection{Literature Overview}
+
+\subsection{Experiments}
+How does this fit with our previously developed model?
+
+\section{Results} \label{sec:Results}
+\subsection{Literature Overview}
+
+\subsection{Simulations}
+
+\section{Discussion} \label{sec:Disc}
+
+\section{Future Work} \label{sec:Fut}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \appendices{}              % note there is no {} to put a title. Each appendix has its own title
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -96,13 +137,11 @@ The authors thank the Office of Naval Research for funding this project.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \thebiography
 %% This biostyle allows you to insert your photo size 1in X 1.25in
-\begin{biographywithpic}
-{Nicolas Mandel}{}
+\begin{biographywithpic}{Nicolas Mandel}{blankpic.eps}
 Blablabla
 \end{biographywithpic} 
 
-\begin{biographywithpic}
-{Sophie Taylor}{}
+\begin{biographywithpic}{Michael}{blankpic.eps}
 Blablabla
 \end{biographywithpic}
 
