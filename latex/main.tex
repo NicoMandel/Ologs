@@ -79,28 +79,75 @@ The influence of these novel signals on the level of names on conventional robot
 In this paper we provide an overview of a selected subset of the literature on combining semantic signals with spatial information in robotics to illustrate the evolution of the field with novel algorithms information, specifically in the context of UAVs. First, we provide a brief overview of early approaches from the turn of the century. Second, we display a select subset of contemporary approaches, which include semantic information into novel algorithms. Third, we highlight approaches that incorporate semantic information into UAV pipelines.\\
 In the second section we conduct numerical experiments on the well-defined problem of semantic mapping of a two-dimensional occupancy grid~\cite{gonzalez_unmanned_2016} and show how conventional parameters surrounding the quality of observations, overlap and flight speed influence a naive bayesian filter. We supplement the filter through an informed prior and demonstrate the effectiveness and shortcomings of the approach.\\
 As a future prospect, we briefly point to approaches from related semantic fields, such as speech recognition and language processing, which hold the potential to enhance the inclusion of semantic information.\todo{cite lienou - semantic annotation of satellite images using LDA}.
+
 \section{Literature Summary} \label{sec:Lit}
+The results of the literature overview are summarised in appendix~\todo{Appendix naming}. The following sections provide an overview of the approaches.
+
 \subsection{Historic Literature} \label{subsec:LitHist}
-
+The association of sensory inputs with symbolic systems and intricate representations has been discussed from a cognitive viewpoint by Harnad et al.~\cite{harnad_symbol_1990}.\\
+Chown and colleagues~\cite{chown_prototypes_1995} researched the "what" and "where" subsystems of the human cognition and their learning over time. They captured the influence of landmark recognition, recreation of consistent Euclidean maps, as well as the importance of gateways, representing transitions between regions.\\
+Kuipers~\cite{kuipers_spatial_2000} connected places, defined as 0D points, through 1D paths with 2D regions in topological maps. The proposed maps had a sensory and control level, a causal level, a topological level and a metrical level, all of which were connnected hierarchically.\\ Kuipers et al.~\cite{kuipers_local_2004} also conducted experiments where local metric room representations were linked through topological constraints.\\ 
+Galindo et al.~\cite{galindo_robot_2008} connected a spatial hierarchical representation consisting of areas and objects with a terminological box and connected between these two in a deterministic manner to enable inference and path planning.\\
+Borkowski et al.~\todo{Cite borkowski} assigned a hierarchical place taxomony based on architectural house representations to a metric map and performed path-planning within this map while considering semantic constraints.\\
+Tenorth~\cite{tenorth_knowrob-map_2010} built a topological representation of abstract objects and locations and associates these in a hierarchical fashion to enhance task planning by incorporating the relations of objects.\\
+Krishnan and Krishnan~\cite{krishnan_visual_2010} constructed a hierarchical semantical-topological and explored the semantic nodes before proceeding to the next one, making use of transition areas as mentioned in~\cite{chown_prototypes_1995}.
 \subsection{Contemporary Literature}
-
+Contemporary image processing techniques have accelerated semantic spatial research through significant improvements in reliability and robustness of classification and localisation~\cite{alom_history_2018}.\\
+Suenderhauf et al.~\cite{sunderhauf_meaningful_2017} associated point-clouds in SLAM with labels propagated through a modern neural network.\\
+Zhang et al.~\cite{zhang_hierarchical_2019} used a hierarchical topic model to improve the performance of a SLAM system by actively integrating the object association problem into a hierarchical dirichlet process.\\
+Yang et al.~\cite{yang_visual_2018} used scene priors derived from vector representations of class names to enhance a reinforcement learning module which relies on visual cues in indoor environments.\\
+Wu et al.~\cite{wu_learning_2018} used reinforcement learning to train an agent to recognise a room and infer whether another room type is directly accessible from this room using a bernoulli distribution.\\
+Chaplot et al.~\cite{chaplot_object_2020} won the 2020 CVPR challenge to navigate to an object goal by learning a semantic-metric map from visual cues and training a policy to generate frontier-based goals. Their research also highlighted that other RL policies were outperformed by frontier-based methods and were unable to generalize to the real-world.\\ 
 \subsection{UAV Literature}
+UAV-based systems present different approaches to including semantic information. A substantial amount of literature is concerned with passive acquisition of semantic information.\\
+Le Saux and Sanfourche~\cite{saux_rapid_2013}, Sheppard and Rahnemoonfar~\cite{sheppard_real-time_2017}, Christie et al.~\cite{christie_semantics_2016} and Kyrkou et al.~\cite{kyrkou_dronet:_2018}, classified top-down images taken from a UAV in real-time with respect to different classes and approaches. \\
+Cavaliere et al.~\cite{cavaliere_towards_2016,cavaliere_towards_2018} associated ''tracks'' coming from images with ''places'' from geospatial information to describe relations between them in a relational manner, as detailed in~\cite{landsiedel_review_2017}. The individual items were structured hierarchically to distinguish between different type of tracks, such as vehicles and humans on the first level and cars, motorcycles and trucks on the second level.\\
+Drouilly et al.~\cite{drouilly_semantic_2015} developed a metric to evaluate the semantic quality of a path through an environment depending on the distribution of objects and the observation quality.
 
+Semantic information has also been actively employed in navigation algorithms to enhance their performance.\\
+Maturana et al.~\cite{maturana_looking_2017} annotated a 2.5D map with detection of cars to approach these.\\
+Maravall et al.~\cite{maravall_navigation_2017} used the image entropy to navigate through a topological map to semantically salient places.\\ 
+Alirezaie~\cite{alirezaie_exploiting_2017} developed a RRT implementation that discards semantically inadmissible points through geospatial information associated with the waypoints and significantly improved planning time for longer distances.\\
+Dang et al.~\cite{dang_autonomous_2018} employed an object detector on top of a voxel grid to detect humans and bicycles.\\
+Koch et al.~\cite{koch_automatic_2019} respected semantic constraints during the path planning step for 3D reconstruction using UAVs while maintaining the quality of the reconstruction.
+Toudeshki et al.~\cite{toudeshki_robust_2018} combined a visual teach-and-repeat approach with an object detector to funnel the UAV to follow a path.
 % \subsection{Literature on Hierarchical models from NLP}
 
 \section{Methodology} \label{sec:Met}
 \subsection{Literature Overview}
-
+Problem: "Gateways" as defined by Chown~\cite{chown_prototypes_1995}, used by Kuipers~\cite{kuipers_local_2004}, Krishnan and Krishnan~\cite{krishnan_visual_2010} and Wu et al.~\cite{wu_learning_2018} for successful implementations are difficult outdoors - where a room ends is quite easy (with a door/window), but where does the lawn end and the golf court begin?\\
+Problem: RL are not capable of generalizing well~\cite{chaplot_object_2020} and also do not consistently outperform generalized path planning.\\
+Problem: UAV viewpoints provide a hurdle for use of off-the-shelf NNs~\cite{richardwebster_psyphy:_2019}.\\
+Problem: UAV path-planning is often done in a way to reliably cover large areas~\cite{vanegas_novel_2018}.\\
+This research is directed towards the section on understanding and evaluating the semantic information of a UAV as demonstrated in the pipeline shown in Mandel et al.~\cite{mandel_towards_2020}.
 \subsection{Experiments}
-How does this fit with our previously developed model?
-
+We conduct numerical experiments to uncover the influences of certain aspects of the mapping pipeline. The map is an evenly spaced grid $MxM$ defined by a one-hot vector of the true identity, $x_{i,j} = \{0,..., 1, ..., 0\}_K$. The probability of making an observation $z$ is given by $p(z\mid~x)$, the estimated identity of a cell is given by Bayes' rule as:
+\begin{equation}
+    p(x~\mid~z) = \frac{p(z~\mid~x) p(x)}{p(z)}
+\end{equation} for sequential updates and assumed independence of map cells, where the posterior of incremental updates is used as a new prior $p(x)$. The maximum number of observations is bound by the stride (proportional to the flight velocity and the desired overlap), as well as the field of view.\\
+The probability of the true state given an observation can be evaluated through a test data set for any detection algorithm.
+\subsection{Evaluation}\label{subsec:MetEval}
+To evaluate the reproduction quality of the posterior map for each individual state we use the log-likelihood, or cross-entropy, for each cell defined by:
+\begin{equation}
+    H_{i,j} = - \sum_{k} p_{i,j,k}~ln(q_{i,j,k})
+\end{equation}
+With $p_i$ the true state and $q_i$ the estimated map. 
 \section{Results} \label{sec:Results}
 \subsection{Literature Overview}
-
+The semantic information in robotics is included on various levels, especially in the contemporary literature, without explicit definition
+\begin{enumerate}
+    \item Area
+    \item Region
+    \item Object
+\end{enumerate}
+Semantics, as study of signs, has far-reaching roots in language. Computer scientists working with language have put large efforts into attempting to model spoken and written language. Spoken language has employed Hierarchical models of language to separate spoken words (through HHMMs). Natural Language processing has looked deep and hard into classifying collections of words into topics and documents (which are considered mixtures of topics) for classification and proposition. 
+example of successful application are Fei-Fei-Lis LDA Application, and the other ones for the scenes and images. And the one with the satellite images. Maybe we can use these to turn into sophisticated models?
+What we are currently missing from these are the reliable amounts of ground-truth data.
+In speech applications: Various forms of Hierarchical Hidden Markov Models, mostly elucidated by Kevin Murphy~\todo{Cite his PhD Thesis here}
 \subsection{Simulations}
 
 \section{Discussion} \label{sec:Disc}
-
+Why the stuff we do in this case might not be fully mathematically sound. But why we believe this may make semantic mapping approaches better by providing an interpretable framework with values to update 
 \section{Future Work} \label{sec:Fut}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \appendices{}              % note there is no {} to put a title. Each appendix has its own title
