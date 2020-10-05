@@ -320,6 +320,84 @@ def getpatternstride(x_max, y_max, stride, overlap, fov=1):
     """
     pass
 
+# Hierarchical functions
+def getareaprior(arealist):
+    """
+        Function to get a uniform prior over the areas
+    """
+    return np.ones_like(arealist).astype(np.float) / arealist.size
+
+def gethierarchprobab(arealist, objectlist):
+    """
+        Function to define the probabilities p(t|u) with u being the areas.
+        Rows sum to 1
+        Indices (columns):
+            0 - house
+            1 - pavement
+            2 - grass
+            3 - tree
+            4 - vehicle
+        Indices (rows):
+            0 - urban
+            1 - road
+            2 - forest
+    """
+    df = pd.DataFrame(index=arealist, columns=objectlist)
+    df.at["urban", "house"] = 0.5
+    df.at["urban", "pavement"] = 0.2
+    df.at["urban", "grass"] = 0.05
+    df.at["urban", "tree"] = 0.1
+    df.at["urban", "vehicle"] = 0.15
+
+    df.at["road", "house"] = 0.05
+    df.at["road", "pavement"] = 0.5
+    df.at["road", "grass"] = 0.10
+    df.at["road", "tree"] = 0.05
+    df.at["road", "vehicle"] = 0.3
+
+    df.at["forest", "house"] = 0.05
+    df.at["forest", "pavement"] = 0.1
+    df.at["forest", "grass"] = 0.4
+    df.at["forest", "tree"] = 0.4
+    df.at["forest", "vehicle"] = 0.05
+    return df
+
+def calchierprob(pu, ptu_df):
+    """
+        Function to calculate the total probability of observing something
+    """
+    x = pu @ ptu_df
+    return x/x.sum()
+
+def updatearea(probab_tu, pr_u, obs):
+    p_tu = probab_tu[obs]
+    pos = pr_u * p_tu
+    pos = pos / pos.sum()
+    return pos
+
+def updateHierProbab(obs, obs_prob, pr_hier, counts, ptu_df):
+    """
+        Function to update the hierarchical Probabiltities, Given:
+            Obs - Observations made as indices
+            Obs_prob - Observation probabilities p(z|x)
+            pr_hier - hierarchical prior used for recalculating
+            counts  - number of observations per cell. 
+            ptu_df - the dataframe containing the p(t|u)
+    """
+    pass
+
+def updateHierDynProbab(obs, obs_prob, pr_hier_dyn, counts, ptu_df):
+    """
+        Function to update the hierarchical DYNAMIC probabilities, given:
+            Obs - Observations made, as indices according to the order
+            Obs_prob = Observation Probabilities p(z|x)
+            pr_hier_dyn - Dynamical prior used for recalculating p(u|t)
+            counts - number of observations per cell. Also used for recalculating p(u|t)         
+            ptu_df - the dataframe containing the p(t|u)
+    """
+    pass
+
+
 # Evaluation
 def cross_entropy(vec_true, vec_pred):
     """
@@ -361,8 +439,35 @@ def testonehot():
     ax.imshow(img)
     plt.show()
 
+def testhierarchical():
+    """
+        Function to test whether the hierarchical stuff works
+    """
+    arealist = np.asarray(["urban", "road", "forest"])
+    objectlist = np.asarray(["house", "pavement", "grass", "tree", "vehicle"])
+    df = gethierarchprobab(arealist, objectlist)
+    print(df)
+
+    gtmap = np.empty((64,64))
+    gtmap = fillmap_idx(gtmap, objectlist)
+
+    # Real prior distribution
+    out = get_map_counts(gtmap)
+    print(out)
+
+    # Guess the prior distribution over the areas:
+    pr_hier = np.asarray([0.1, 0.2, 0.7])
+    pred_classes_hier = pr_hier @ df
+    print(pred_classes_hier)
+
+    ctsmap = np.zeros_like(gtmap)
+
+
+
 
 if __name__=="__main__":
+
+    testhierarchical()
 
     #### Section 1 - Setup work
     carr = colorarr()
@@ -375,16 +480,34 @@ if __name__=="__main__":
     gtmap=np.empty((n1,m1))
     gtmap = fillmap_idx(gtmap, classlist)
 
+    # Second Level map
+    arealist = np.asarray(["urban", "road", "forest"])
+    df = gethierarchprobab(arealist, classlist)
+    real_distribution = get_map_counts(gtmap)
+    prior_hierarchical = np.asarray([0.1, 0.2, 0.7]) # best guess of how the distribution of our areas looks like
+    pred_classes_hierar = prior_hierarchical @ df
+    
+    # A map to store the counts
+    countsmap = np.zeros_like(gtmap)
+
     # Maps that are used for predictions:
     dirmap = np.ones_like(gtmap)
     predmap = dirmap / gtmap.shape[2]
-    flatmap = np.copy(predmap)   
+    flatmap = np.copy(predmap)
+
+    # two additional maps used for prediction 
+    hiermap = np.copy(predmap)          # One that uses the flat prior prediction from our model
+    hiermap[:,:] = pred_classes_hierar.to_numpy()
+    hiermap_dyn = np.copy(predmap)      # One that updates the p(u) dynamically
 
     # Maps that are used for visualisation
     gt_vis = vis_idx_map(gtmap, carr)
     dirmap_vis = np.ones_like(gt_vis)
     map_vis = np.copy(dirmap_vis)
     pred_vis = np.copy(dirmap_vis)
+    # Two additional maps for visualization
+    hiermap_vis = np.copy(dirmap_vis)
+    hiermap_dyn_vis = np.copy(dirmap_vis)
        
     # Observation probabilites and waypoints
     obs_prob = observation_probabilities(classlist)
@@ -396,6 +519,8 @@ if __name__=="__main__":
     t2 = "Reconstructed Map"
     t3 = "Prediction Map"
     t4 = "Dirichlet Map"
+    t5 = "Hierarchical prediction Map"
+    t6 = "Dynamical Hierarchical prediction Map"
     # axes[0,0].title.set_text(t1)
     # axes[0,1].title.set_text(t2)
     # axes[1,0].title.set_text(t3)
@@ -412,11 +537,19 @@ if __name__=="__main__":
         pr_flat = flatmap[x_min:x_max, y_min:y_max,:]
         pr_dir = dirmap[x_min:x_max, y_min:y_max,:]
         pr_pred = predmap[x_min:x_max, y_min:y_max,:]
+        # For the hierarchical function
+        # TODO: increment the counts accordingly before passing them to the updating / prediction functions
+        counts = countsmap[x_min:x_max, y_min:y_max,:]
+        pr_hier = hiermap[x_min:x_max, y_min:y_max,:]
+        pr_hier_dyn = hiermap_dyn[x_min:x_max, y_min:y_max,:]
 
         # Update the probabilities
         post_flat = updateprobab(obs, obs_prob, pr_flat)
         post_pred = updateprobab(obs, obs_prob, pr_pred)
-        post_dir =  updateDir(obs, pr_dir) 
+        post_dir =  updateDir(obs, pr_dir)
+        # Udpate the hierarchical probabilities # TODO: Continue here
+        post_hier = updateHierProbab(obs, obs_prob, pr_hier, counts, df)
+        post_hier_dyn = updateHierDynProbab(obs, obs_prob, pr_hier_dyn, counts, df)
 
         # Re-incorporate the information into the map
         flatmap[x_min:x_max, y_min:y_max] = post_flat
