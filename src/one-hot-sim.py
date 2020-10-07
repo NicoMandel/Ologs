@@ -164,7 +164,7 @@ def gensampleidx(gt, obs_probab):
     samples = np.zeros((gt.shape[0], gt.shape[1]))
     for i in range(gt.shape[0]):
         for j in range(gt.shape[1]):    
-            idx = np.nonzero(gt[i,j])
+            idx = np.nonzero(gt[i,j])[0]
             p = obs_prob[idx] 
             samples[i,j] = np.random.choice(sam, p=p[0])
     return samples.astype(np.int)
@@ -375,6 +375,16 @@ def updatearea(probab_tu, pr_u, obs):
     pos = pos / pos.sum()
     return pos
 
+def updatecounts(counts, samples):
+    """
+        Function to update the count array
+    """
+    for i in range(samples.shape[0]):
+        for j in range(samples.shape[1]):
+            counts[i,j,samples[i,j]] += 1
+    # counts[...,samples] +=1
+    return counts
+
 def updateHierProbab(obs, obs_prob, pr_hier, counts, ptu_df):
     """
         Function to update the hierarchical Probabiltities, Given:
@@ -397,6 +407,50 @@ def updateHierDynProbab(obs, obs_prob, pr_hier_dyn, counts, ptu_df):
     """
     pass
 
+# Hierarchical Dynamic Prediction for the cells:
+def dynamic_prediction(cts, ptu, prior_u, classlist):
+    """
+        A function to dynamically estimate which area we are in
+        Returns a new prior, which should be used for all cells where the counts are zero
+        Arguments: 
+            The counts of observations
+            The observation functions:
+                p(u|t) = p(t|u) p(u)
+                with p(u) being the flat prior over the areas
+    """
+    # print("Counts:\n{}".format(cts))
+    # print("P(t|u):\n {}".format(ptu))
+    # print("Prior p(u):\n{}".format(prior_u))
+    # Step 1: find cells that have already been observed
+    obs = np.sum(cts, axis=(0,1)).astype(np.int)
+    # Step 2: for each of the observations, run "updatearea()"  With the appropriate values
+    post_u = prior_u
+    for i in range(obs.size):
+        n_obs = obs[i]
+        for j in range(n_obs):
+            post_u = updatearea(ptu, post_u, classlist[i])
+    # print(post_u)
+    # Step 3: recalculate p(t|u) with the new p(u)
+    class_probab = calchierprob(post_u, ptu)
+    # print("Observations:\n{}".format(obs))
+    # print("Posterior Area Probabilities:\n{}".format(post_u))
+    # print("Updated Object class prior:\n{}".format(class_probab))
+    # print("Testline")
+    return class_probab
+
+def recreate_posterior(prior, counts, obs_prob):
+    """
+        Function to recreate the posterior, with the prior and the number of observations of the classes
+        as well as the observation probabilities
+    """
+    post = prior
+    for i in range(counts.size):
+        ct = counts[i].astype(np.int)
+        for j in range(ct):
+            vec = obs_prob[i]
+            post = vec*post
+            post = post / post.sum()
+    return post
 
 # Evaluation
 def cross_entropy(vec_true, vec_pred):
@@ -453,27 +507,26 @@ def testhierarchical():
 
     # Real prior distribution
     out = get_map_counts(gtmap)
-    print(out)
+    print("Relative Class distribution in the map:\n{}".format(out))
 
     # Guess the prior distribution over the areas:
     pr_hier = np.asarray([0.1, 0.2, 0.7])
     pred_classes_hier = pr_hier @ df
-    print(pred_classes_hier)
+    print("Predicted Class distribution:\n{}".format(pred_classes_hier))
 
     ctsmap = np.zeros_like(gtmap)
 
 
 
-
 if __name__=="__main__":
 
-    testhierarchical()
+    # testhierarchical()
 
     #### Section 1 - Setup work
     carr = colorarr()
     max_map_size = 64
     n1 = m1 = max_map_size
-    fov = 2
+    fov = 1
 
     # First Level map
     classlist = np.asarray(["house", "pavement", "grass", "tree", "vehicle"])
@@ -498,7 +551,7 @@ if __name__=="__main__":
     # two additional maps used for prediction 
     hiermap = np.copy(predmap)          # One that uses the flat prior prediction from our model
     hiermap[:,:] = pred_classes_hierar.to_numpy()
-    hiermap_dyn = np.copy(predmap)      # One that updates the p(u) dynamically
+    hiermap_dyn = np.copy(hiermap)      # One that updates the p(u) dynamically
 
     # Maps that are used for visualisation
     gt_vis = vis_idx_map(gtmap, carr)
@@ -525,8 +578,13 @@ if __name__=="__main__":
     # axes[0,1].title.set_text(t2)
     # axes[1,0].title.set_text(t3)
     # axes[1,1].title.set_text(t4)
-
+    hundredpercent = wps.shape[0]
+    tenpercent = hundredpercent // 10
+    percentcounter = 0
     for i in range(wps.shape[0]-1):
+        if i % tenpercent == 0:
+            print("Got {} Percent".format(percentcounter*10))
+            percentcounter += 1
     # def animate(i):
         # indices that are currently visible
         x_min, x_max, y_min, y_max = retrieveVisibleFields(wps[i], fov=fov)
@@ -538,18 +596,20 @@ if __name__=="__main__":
         pr_dir = dirmap[x_min:x_max, y_min:y_max,:]
         pr_pred = predmap[x_min:x_max, y_min:y_max,:]
         # For the hierarchical function
-        # TODO: increment the counts accordingly before passing them to the updating / prediction functions
         counts = countsmap[x_min:x_max, y_min:y_max,:]
-        pr_hier = hiermap[x_min:x_max, y_min:y_max,:]
-        pr_hier_dyn = hiermap_dyn[x_min:x_max, y_min:y_max,:]
+        # pr_hier = hiermap[x_min:x_max, y_min:y_max,:]         # May not need those
+        # pr_hier_dyn = hiermap_dyn[x_min:x_max, y_min:y_max,:] # May not need them
+        # Updating the counts
+        counts = updatecounts(counts, obs)
+        countsmap[x_min:x_max, y_min:y_max, :] = counts
 
         # Update the probabilities
         post_flat = updateprobab(obs, obs_prob, pr_flat)
         post_pred = updateprobab(obs, obs_prob, pr_pred)
         post_dir =  updateDir(obs, pr_dir)
-        # Udpate the hierarchical probabilities # TODO: Continue here
-        post_hier = updateHierProbab(obs, obs_prob, pr_hier, counts, df)
-        post_hier_dyn = updateHierDynProbab(obs, obs_prob, pr_hier_dyn, counts, df)
+        # Udpate the hierarchical probabilities # TODO: Continue here - never really need to do this?
+        # post_hier = updateHierProbab(obs, obs_prob, pr_hier, counts, df)
+        # post_hier_dyn = updateHierDynProbab(obs, obs_prob, pr_hier_dyn, counts, df)
 
         # Re-incorporate the information into the map
         flatmap[x_min:x_max, y_min:y_max] = post_flat
@@ -562,10 +622,18 @@ if __name__=="__main__":
         fustates_dir = dirmap[xmin_pred:xmax_pred, ymin_pred:ymax_pred]
         nst_pred = pred_flat(fustates)
         nst_dir = pred_dir(fustates_dir)
+        # Hierarchical prediction:
+        dyn_pr = hiermap_dyn[xmin_pred:xmax_pred, ymin_pred:ymax_pred, :]
+        cts_fut = countsmap[xmin_pred:xmax_pred, ymin_pred:ymax_pred, :]
+        pred_dyn = dynamic_prediction(cts_fut, df, prior_hierarchical, classlist) 
 
         # Re-incorporate prediction-values into the map 
         predmap[xmin_pred:xmax_pred, ymin_pred:ymax_pred] = nst_pred
         dirmap[xmin_pred:xmax_pred, ymin_pred:ymax_pred] = nst_dir
+        # hierarchical incorporation - where nothing has been observed yet
+        zer_idcs = np.where(np.sum(cts_fut, axis=2) == 0)
+        dyn_pr[zer_idcs] = pred_dyn
+        hiermap_dyn[xmin_pred:xmax_pred, ymin_pred:ymax_pred, :] = dyn_pr
 
         # Do the visibility lookup
         post_vis = lookupColorFromPosterior(carr, post_flat)
@@ -594,7 +662,8 @@ if __name__=="__main__":
     #     axes[1,1].set(title=t4)
 
     # ani = matplotlib.animation.FuncAnimation(fig, animate, frames=wps.shape[0]-1, interval=10, repeat=False)
-    # plt.show()        
+    # plt.show()
+    #         
 
     # Setting up the entropy arrays
     dir_mode = np.ones_like(gtmap)
@@ -605,6 +674,12 @@ if __name__=="__main__":
     pred_e = np.copy(dir_e_e)
     flat_e = np.copy(dir_e_e)
     
+    # Hierarchical stuff for recalculating
+    postmap_dyn = np.zeros_like(gtmap)
+    postmap_hier = np.zeros_like(gtmap)
+    dyn_e = np.copy(dir_e_e)
+    hier_e = np.copy(dir_e_e)
+
     # Looping over all map elements
     for i in range(gtmap.shape[0]):
         for j in range(gtmap.shape[1]):
@@ -618,15 +693,30 @@ if __name__=="__main__":
             pred_e[i,j] = cross_entropy(gt, predmap[i,j,:])
             flat_e[i,j] = cross_entropy(gt, flatmap[i,j,:])
 
+            # For the hierarchical maps: Recreate the posterior
+            postmap_dyn[i,j,:] = recreate_posterior(hiermap_dyn[i,j,:], countsmap[i,j,:], obs_prob)
+            postmap_hier[i,j,:] = recreate_posterior(hiermap[i,j,:], countsmap[i,j,:], obs_prob)
+            dyn_e[i,j] = cross_entropy(gt, postmap_dyn[i,j,:])
+            hier_e[i,j] = cross_entropy(gt, postmap_hier[i,j,:])
+
+    print("Total Entropy for all: ")
+    print("Flat Updates: {}".format(flat_e.flatten().sum()))
+    print("Predicted Updates: {}".format(pred_e.flatten().sum()))
+    print("Hierarchical Prediction: {}".format(hier_e.flatten().sum()))
+    print("Dynamic Predictions: {}".format(dyn_e.flatten().sum()))
+
     # Plotting the cross-entropy
     fig2 = plt.figure()
     ax = fig2.gca()
     x = np.arange(flat_e.shape[0] * flat_e.shape[1])
-    ax.plot(x, dir_e_e.flatten(), alpha=0.5, label="Dirichlet Expected")
-    ax.plot(x, dir_m_e.flatten(), '--', alpha=0.5, label="Dirichlet Mode")
+    # ax.plot(x, dir_e_e.flatten(), alpha=0.5, label="Dirichlet Expected")
+    # ax.plot(x, dir_m_e.flatten(), '--', alpha=0.5, label="Dirichlet Mode")
     ax.plot(x, flat_e.flatten(), '-.', alpha=0.5, label="Flat Updates")
     ax.plot(x, pred_e.flatten(), ':', alpha=0.5, label="Predicted")
+    ax.plot(x, hier_e.flatten(),'--', alpha=0.5, label="Hierarchical Pred")
+    ax.plot(x, dyn_e.flatten(), '-.', alpha=0.5, label="Dynamic Pred")
     ax.legend()
+    ax.set_ylim(0,0.15)
     # for i in range(max_map_size):
     #     plt.axvline(i * max_map_size, ls='--')
     plt.show()
