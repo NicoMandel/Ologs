@@ -7,7 +7,8 @@
     TODO: Indexing into the right higher level 
     block will require indexing like CUDA! blockDim.x * blockidx.X + ThreadIdx.x
 
-    # TODO: Color mapping of imshow of matplotlib through [this](https://matplotlib.org/3.1.0/api/_as_gen/matplotlib.pyplot.imshow.html)
+    # TODO: Idea: what if we omit the boundaries from the reproduction - does the quality improve?
+
 """
 
 import numpy as np
@@ -313,12 +314,31 @@ def getpattern(x_max, y_max, fov=1):
     # Desired output: List of the form: [0,0], [1,0], [2, 0]
     return np.asarray(pattern)
 
-def getpatternstride(x_max, y_max, stride, overlap, fov=1):
-    """
-        Function to return the lawnmower pattern. Requires stride and overlap
-        See tests in "strideoverlap.py" in tmp
-    """
-    pass
+def getflightpattern(xmax, ymax, fov=1, overlap=(0.5, 0.5)):
+    overlap_x = overlap[0]
+    overlap_y = overlap[1]
+    stride_x = int(2*fov*overlap_x)
+    stride_y = int(2*fov*overlap_y)
+    iteration=1
+    x = fov-1
+    y = fov-1
+    # print("X max: {}, Y max: {}, Stride_x: {}, Stride_y: {}".format(xmax, ymax, stride_x, stride_y))
+    wps = []
+    while(x+fov < xmax):
+        while(y+fov < ymax):
+            if iteration%2==1:
+                # leave the order
+                y_n = y
+            else:
+                # invert the order
+                y_n = ymax-y-fov
+            wp = tuple([x, y_n])
+            wps.append(wp)
+            y += stride_y
+        y = fov-1
+        x += stride_x
+        iteration+=1
+    return np.asarray(wps)
 
 # Hierarchical functions
 def getareaprior(arealist):
@@ -517,7 +537,6 @@ def testhierarchical():
     ctsmap = np.zeros_like(gtmap)
 
 
-
 if __name__=="__main__":
 
     # testhierarchical()
@@ -526,8 +545,9 @@ if __name__=="__main__":
     carr = colorarr()
     max_map_size = 64
     n1 = m1 = max_map_size
-    fov = 1
-
+    fov = 2
+    h_overlap = v_overlap = (1.0 / 2.0)
+    overlap = (h_overlap, v_overlap)
     # First Level map
     classlist = np.asarray(["house", "pavement", "grass", "tree", "vehicle"])
     gtmap=np.empty((n1,m1))
@@ -564,7 +584,7 @@ if __name__=="__main__":
        
     # Observation probabilites and waypoints
     obs_prob = observation_probabilities(classlist)
-    wps = getpattern(n1, m1, fov)      # Flight pattern
+    wps = getflightpattern(n1, m1, fov=fov, overlap=overlap)      # Flight pattern
 
     # SECTION 2: Visualisation prelims
     # fig, axes = plt.subplots(2, 2)
