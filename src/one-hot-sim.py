@@ -15,8 +15,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import matplotlib.animation
+# Imports for file workings
 from argparse import ArgumentParser
 import sys
+import os.path
+import h5py
+import errno
 
 # Argument parsing and Saving 
 def parse_args():
@@ -39,6 +43,7 @@ def checkarguments(args):
     """
         Function to check the arguments for admissible/inadmissible stuff
     """
+
     fov = args.fov
     h_overlap = 1-args.overlaph
     v_overlap = 1-args.overlapv
@@ -48,6 +53,80 @@ def checkarguments(args):
             sys.exit("Error: Overlap {} Not a multiple of: {}".format(
                 over, (1.0 / (2*fov))
             ))
+    print("All checks passed. Continuing with case:")
+    ar = vars(args)
+    for k,v in ar.items():
+        print("{}: {}".format(
+            k,v
+        ))
+
+def save_results(outputdir, args, datadict, configs):
+    """
+        Function to save the results.
+            Requires: Output directory, arguments for case discriminiation
+            dictionary, with the names being the keys and the values the data 
+            We should save:
+            All results
+            The filename represents the arguments of the simulation, with the tuple being splitable by:
+            ParamName-Value_ParamName-Value_ etc.
+    """
+
+    # Setting up the outputdirectory
+    if args.transposed:
+        transp = 1
+    else:
+        transp=0
+    if args.random:
+        rando = 1
+    else:
+        rando=0
+    
+    # With this string formatting it can be split by _ and by -
+    outname = "Sim-{}_Dim-{}_Fov-{}_Acc-{}_HOver-{}_VOver-{}_Transp-{}_Rand-{}".format(
+        args.simcase, args.dim, args.fov, args.accuracy, 1-args.overlaph, 1-args.overlapv, transp, rando
+    )
+    outdir = os.path.abspath(os.path.join(outputdir, outname))
+    try:
+        os.mkdir(outdir)
+        # pass
+    except OSError as exc:
+        if exc.errno != errno.EEXIST:
+            raise
+        pass
+    
+    # Now write the files in that output directory
+    # Use Syntax like:
+    # for k,v in dictionary.items() - for all the different arrays that I have
+    fname = os.path.join(outdir, outname+".hdf5")
+    with h5py.File(fname, "w") as f:
+        for k,v in datadict.items():
+            dset=f.create_dataset(k, data=v)
+
+    # Write the configs to an excel file. use PD.ExcelWriter here
+    fname =  os.path.abspath(os.path.join(outdir,'configs'+'.xlsx'))
+    with pd.ExcelWriter(fname) as writer:
+        for shname, df in configs.items():
+            shname = (shname[:29]) if len(shname) > 30 else shname
+            if df.shape[0] > 2:
+                df.to_excel(writer, sheet_name=shname)
+
+def plotresults(datadict, args):
+    """
+        Alternative to saving the results: Plotting them:
+    """
+    fig = plt.figure()
+    ax = fig.gca()
+    x = np.arange(args.dim*args.dim)
+    for k, v in datadict.items():
+        ax.plot(x, v.flatten(), alpha=0.5, label=k)
+    ax.legend()
+    ax.set(title="Sim-{}_Dim-{}_Fov-{}_Acc-{}_HOver-{}_VOver-{}".format(
+        args.simcase, args.dim, args.fov, args.accuracy, 1-args.overlaph, 1-args.overlapv,
+    ))
+    ax.set_ylim(0,0.15)
+    # for i in range(max_map_size):
+    #     plt.axvline(i * max_map_size, ls='--')
+    plt.show()
 
 # Map creation and indexing functions
 def colorarr():
@@ -572,11 +651,13 @@ def testhierarchical():
 if __name__=="__main__":
 
     # testhierarchical()
+    # Filename Writing Stuff
     args = parse_args()
     checkarguments(args)
+    parentDir = os.path.dirname(__file__)
+    outputdir = os.path.abspath(os.path.join(parentDir,'..','tmp', 'results'))
 
     #### Section 1 - Setup work
-    carr = colorarr()
     max_map_size = args.dim
     n1 = m1 = max_map_size
     fov = args.fov
@@ -587,14 +668,18 @@ if __name__=="__main__":
     simcase = args.simcase
     transposed = args.transposed
 
-    # First Level map - TODO: include the random argument
+    # TODO: Configs to write into a new file 
+    carr = colorarr()
     classlist = np.asarray(["house", "pavement", "grass", "tree", "vehicle"])
+    arealist = np.asarray(["urban", "road", "forest"])
+    df = gethierarchprobab(arealist, classlist)
+    obs_prob = observation_probabilities(classlist, maxim=likelihood)
+
+    # First Level map - TODO: include the random argument
     gtmap=np.empty((n1,m1))
     gtmap = fillmap_idx(gtmap, classlist, scenario=simcase, transpose=transposed)
 
-    # Second Level map
-    arealist = np.asarray(["urban", "road", "forest"])
-    df = gethierarchprobab(arealist, classlist)
+    # Second Level map - TODO: include these also into the config file!
     real_distribution = get_map_counts(gtmap)
     prior_hierarchical = np.asarray([0.1, 0.2, 0.7]) # best guess of how the distribution of our areas looks like
     pred_classes_hierar = prior_hierarchical @ df
@@ -622,7 +707,6 @@ if __name__=="__main__":
     hiermap_dyn_vis = np.copy(dirmap_vis)
        
     # Observation probabilites and waypoints
-    obs_prob = observation_probabilities(classlist, maxim=likelihood)
     wps = getflightpattern(n1, m1, fov=fov, overlap=overlap)      # Flight pattern
 
     # SECTION 2: Visualisation prelims
@@ -644,7 +728,7 @@ if __name__=="__main__":
         if i % tenpercent == 0:
             print("Got {} Percent".format(percentcounter*10))
             percentcounter += 1
-    # def animate(i):
+        # def animate(i):
         # indices that are currently visible
         x_min, x_max, y_min, y_max = retrieveVisibleFields(wps[i], fov=fov)
         gt = gtmap[x_min:x_max, y_min:y_max]    #  Ground Truth area
@@ -702,27 +786,26 @@ if __name__=="__main__":
         post_dir_vis = lookupColorFromPosterior(carr, post_dir)
         dirmap_vis[x_min:x_max, y_min:y_max] = post_dir_vis
 
-    #     # # Plotting section
-    #     axes[0,0].clear()
-    #     axes[0,0].imshow(gt_vis)
-    #     axes[0,0].set(title=t1)
-    #     axes[0,1].clear()
-    #     axes[0,1].imshow(map_vis)
-    #     axes[0,1].scatter(wps[i,1], wps[i,0], s=20, c='red', marker='x')
-    #     axes[0,1].set(title=t2+" Waypoint: {}, at x: {}, y: {}".format(i, wps[i,1], wps[i,0]))
-    #     # axes[1].scatter(wps[0:i,1], wps[0:i,0], s=15, c='blue', marker='x')
-    #     # axes[1].scatter(wps[i+1:-1,1], wps[i+1:-1,0], s=15, c='black', marker='x')
-    #     # Plotting the predicted classes
-    #     axes[1,0].clear()
-    #     axes[1,0].imshow(pred_vis)
-    #     axes[1,0].set(title=t3)
-    #     axes[1,1].clear()
-    #     axes[1,1].imshow(dirmap_vis)
-    #     axes[1,1].set(title=t4)
+        #     # # Plotting section
+        #     axes[0,0].clear()
+        #     axes[0,0].imshow(gt_vis)
+        #     axes[0,0].set(title=t1)
+        #     axes[0,1].clear()
+        #     axes[0,1].imshow(map_vis)
+        #     axes[0,1].scatter(wps[i,1], wps[i,0], s=20, c='red', marker='x')
+        #     axes[0,1].set(title=t2+" Waypoint: {}, at x: {}, y: {}".format(i, wps[i,1], wps[i,0]))
+        #     # axes[1].scatter(wps[0:i,1], wps[0:i,0], s=15, c='blue', marker='x')
+        #     # axes[1].scatter(wps[i+1:-1,1], wps[i+1:-1,0], s=15, c='black', marker='x')
+        #     # Plotting the predicted classes
+        #     axes[1,0].clear()
+        #     axes[1,0].imshow(pred_vis)
+        #     axes[1,0].set(title=t3)
+        #     axes[1,1].clear()
+        #     axes[1,1].imshow(dirmap_vis)
+        #     axes[1,1].set(title=t4)
 
     # ani = matplotlib.animation.FuncAnimation(fig, animate, frames=wps.shape[0]-1, interval=10, repeat=False)
-    # plt.show()
-    #         
+    # plt.show()      
 
     # Setting up the entropy arrays
     dir_mode = np.ones_like(gtmap)
@@ -758,26 +841,30 @@ if __name__=="__main__":
             dyn_e[i,j] = cross_entropy(gt, postmap_dyn[i,j,:])
             hier_e[i,j] = cross_entropy(gt, postmap_hier[i,j,:])
 
-    print("Total Entropy for all: ")
-    print("Flat Updates: {}".format(flat_e.flatten().sum()))
-    print("Predicted Updates: {}".format(pred_e.flatten().sum()))
-    print("Hierarchical Prediction: {}".format(hier_e.flatten().sum()))
-    print("Dynamic Predictions: {}".format(dyn_e.flatten().sum()))
+    # print("Total Entropy for all: ")
+    # print("Flat Updates: {}".format(flat_e.flatten().sum()))
+    # print("Predicted Updates: {}".format(pred_e.flatten().sum()))
+    # print("Hierarchical Prediction: {}".format(hier_e.flatten().sum()))
+    # print("Dynamic Predictions: {}".format(dyn_e.flatten().sum()))
 
-    # Plotting the cross-entropy
-    fig2 = plt.figure()
-    ax = fig2.gca()
-    x = np.arange(flat_e.shape[0] * flat_e.shape[1])
-    # ax.plot(x, dir_e_e.flatten(), alpha=0.5, label="Dirichlet Expected")
-    # ax.plot(x, dir_m_e.flatten(), '--', alpha=0.5, label="Dirichlet Mode")
-    ax.plot(x, flat_e.flatten(), '-.', alpha=0.5, label="Flat Updates")
-    ax.plot(x, pred_e.flatten(), ':', alpha=0.5, label="Predicted")
-    ax.plot(x, hier_e.flatten(),'--', alpha=0.5, label="Hierarchical Pred")
-    ax.plot(x, dyn_e.flatten(), '-.', alpha=0.5, label="Dynamic Pred")
-    ax.legend()
-    ax.set_ylim(0,0.15)
-    # for i in range(max_map_size):
-    #     plt.axvline(i * max_map_size, ls='--')
-    plt.show()
+    datadict = {}
+    datadict["Counts"] = countsmap
+    datadict["Ground Truth"] = gtmap
+    datadict["Hierarchical-Dynamic"] = hiermap_dyn
+    datadict["Hierachical-Pre"] = hiermap
+    datadict["Predicted"] = predmap
+    datadict["Flat"] = flatmap
 
-    print("Test Done")
+    # Use pandas.ExcelWriter for this?
+    configs = {}
+    configs["Colours"] = pd.DataFrame(data=carr, index=classlist)
+    configs["Hierarch"] = df
+    configs["Observation"] = pd.DataFrame(data=obs_prob, index=classlist)
+    configs["Real_Dist"] = pd.DataFrame(data=real_distribution, index=classlist)
+    configs["Hier_Prior"] = pd.DataFrame(data=prior_hierarchical, index=arealist)
+    configs["Pred_Hier"] = pd.DataFrame(data=pred_classes_hierar, index=classlist)
+
+    # Write datadict or Plot
+    save_results(outputdir, args, datadict=datadict, configs=configs)
+    # plotresults(datadict, args)
+   
