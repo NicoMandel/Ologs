@@ -15,7 +15,39 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import matplotlib.animation
+from argparse import ArgumentParser
+import sys
 
+# Argument parsing and Saving 
+def parse_args():
+    """
+        Function to parse the arguments
+    """
+    parser = ArgumentParser(description="Path planning module Parameters")
+    parser.add_argument("-d", "--dim", default=64, help="Dimensions of the (square) map in fields. Default is 64", type=int)
+    parser.add_argument("-f", "--fov", default=1, help="1/2 of the FOV of the UAV. Is used forward AND backward. Default is 1", type=int)
+    parser.add_argument("--overlaph", default=0.5, help="Horizontal desired overlap. Default is 0.5", type=float)
+    parser.add_argument("--overlapv", default=0.5, help="Vertical desired overlap. Default is 0.5", type=float)
+    parser.add_argument("-a", "--accuracy", default=0.8, help="Detection accuracy. Default is 0.8", type=float)
+    parser.add_argument("-t", "--transposed", default=False, help="Whether the map should be transposed. Default is false", action="store_true")
+    parser.add_argument("-s", "--simcase", default=1, help="Which simulation case to run. Default is 1", type=int)
+    parser.add_argument("-r", "--random", default=False, action="store_true", help="Whether object locations should be randomly generated or not")
+    args = parser.parse_args()
+    return args
+
+def checkarguments(args):
+    """
+        Function to check the arguments for admissible/inadmissible stuff
+    """
+    fov = args.fov
+    h_overlap = 1-args.overlaph
+    v_overlap = 1-args.overlapv
+    overlap = (h_overlap, v_overlap)
+    for over in overlap:
+        if (over % (1.0 / (2*fov)) != 0):
+            sys.exit("Error: Overlap {} Not a multiple of: {}".format(
+                over, (1.0 / (2*fov))
+            ))
 
 # Map creation and indexing functions
 def colorarr():
@@ -540,18 +572,25 @@ def testhierarchical():
 if __name__=="__main__":
 
     # testhierarchical()
+    args = parse_args()
+    checkarguments(args)
 
     #### Section 1 - Setup work
     carr = colorarr()
-    max_map_size = 64
+    max_map_size = args.dim
     n1 = m1 = max_map_size
-    fov = 2
-    h_overlap = v_overlap = (1.0 / 2.0)
+    fov = args.fov
+    h_overlap = 1-args.overlaph
+    v_overlap = 1-args.overlapv
     overlap = (h_overlap, v_overlap)
-    # First Level map
+    likelihood = args.accuracy
+    simcase = args.simcase
+    transposed = args.transposed
+
+    # First Level map - TODO: include the random argument
     classlist = np.asarray(["house", "pavement", "grass", "tree", "vehicle"])
     gtmap=np.empty((n1,m1))
-    gtmap = fillmap_idx(gtmap, classlist)
+    gtmap = fillmap_idx(gtmap, classlist, scenario=simcase, transpose=transposed)
 
     # Second Level map
     arealist = np.asarray(["urban", "road", "forest"])
@@ -583,7 +622,7 @@ if __name__=="__main__":
     hiermap_dyn_vis = np.copy(dirmap_vis)
        
     # Observation probabilites and waypoints
-    obs_prob = observation_probabilities(classlist)
+    obs_prob = observation_probabilities(classlist, maxim=likelihood)
     wps = getflightpattern(n1, m1, fov=fov, overlap=overlap)      # Flight pattern
 
     # SECTION 2: Visualisation prelims
