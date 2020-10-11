@@ -146,7 +146,7 @@ def colorarr():
     vehicle = [0.172, 0.533, 0.866, 1.0]
     return np.asarray([house, pavement, grass, tree, vehicle])
 
-def fillmap_idx(gt, classlist, scenario=1, transpose=False):
+def scenario1(xmax, ymax, classlist, transpose=False):
     """
         Helper function to create the ground truth map, with the classlist indicies
         Indices:
@@ -162,41 +162,128 @@ def fillmap_idx(gt, classlist, scenario=1, transpose=False):
     house =     np.asarray([1, 0, 0, 0, 0])
     pavement =  np.asarray([0, 1, 0, 0, 0])
 
-    n = gt.shape[0]
-    m = gt.shape[1]
+
     k = classlist.size
-    gt = np.zeros((n,m,k))
-    if scenario==1:
-        # Divide columns into 4 sections
-        fourth = m//4
+    gt = np.zeros((xmax,ymax,k))
+    # Divide columns into 4 sections
+    fourth = ymax//4
 
-        # First: Everything is grass
-        gt[...,2] = 1
-        # second fourth is "pavement"
-        gt[:,1*fourth+1:2*fourth,:] = pavement
+    # First: Everything is grass
+    gt[...,2] = 1
+    # second fourth is "pavement"
+    gt[:,1*fourth+1:2*fourth,:] = pavement
 
-        # in Fourth fourth, divide rows into 8 block
-        eigth = n//8
-        for i in range(eigth):
-            if i%2==0:
-                # Put houses into the even blocks
-                r_idx = i*eigth
-                gt[r_idx:r_idx+eigth,3*fourth:3*fourth+3,:] = house
-        
-        # In third block, put a few trees there
-        x = np.asarray(range(0,n,5))
-        gt[x,2*fourth+3,:] = tree
+    # in Fourth fourth, divide rows into 8 block
+    eigth = xmax//8
+    for i in range(eigth):
+        if i%2==0:
+            # Put houses into the even blocks
+            r_idx = i*eigth
+            gt[r_idx:r_idx+eigth,3*fourth:3*fourth+3,:] = house
+    
+    # In third block, put a few trees there
+    x = np.asarray(range(0,xmax,5))
+    gt[x,2*fourth+3,:] = tree
 
-        # In second Block, put two vehicles there
-        quat = m//4
-        gt[quat:quat+3,fourth+int(0.5*fourth)-2:fourth+int(0.5*fourth),:] = vehicle
-        gt[2*quat:2*quat+3,fourth+int(0.5*fourth)+1:fourth+int(0.5*fourth)+3,:] = vehicle
+    # In second Block, put two vehicles there
+    quat = ymax//4
+    gt[quat:quat+3,fourth+int(0.5*fourth)-2:fourth+int(0.5*fourth),:] = vehicle
+    gt[2*quat:2*quat+3,fourth+int(0.5*fourth)+1:fourth+int(0.5*fourth)+3,:] = vehicle
+
+    if transpose:
+        return np.swapaxes(gt,0,1)
+    else:
+        return gt
+
+def scenario2(xmax, ymax, classlist, random=False, roadwidth=2, carcount=4, h_size=3, h_counts=5, testconfig=False, proportion=0.5, transpose=False):
+    """
+
+    """
+    gt = np.zeros((xmax, ymax, classlist.size))
+    tree =      np.asarray([0, 0, 0, 1, 0])
+    vehicle =   np.asarray([0, 0, 0, 0, 1])
+    house =     np.asarray([1, 0, 0, 0, 0])
+    pavement =  np.asarray([0, 1, 0, 0, 0])
+    grass =     np.asarray([0, 0, 1, 0, 0])
+    
+    quatx = xmax // 4
+    quaty = ymax // 4
+    gt[...,:] = grass
+
+    # Choose random indices from the second half. Roughly 50%
+    if random:
+        areasize = int(2*proportion*quatx*ymax)
+        xidcs= np.random.randint(2*quatx,xmax,size=areasize)
+        yidcs = np.random.randint(ymax,size=areasize)
+        idcs = np.asarray((xidcs, yidcs)).T
+    else:    # Make the idcs nonrandom
+        xrang = np.arange(2*quatx,xmax,2)
+        yrang = np.arange(0,ymax,3)
+        idcs = np.array([np.array([x,y]) for x in xrang for y in yrang])
+        # yidcs = [y for y in yrang for x in xrang]
+    gt[idcs[:,0], idcs[:,1], :] = tree
+    
+    # 2 Roads
+    halfx = xmax //2
+    halfy = ymax //2
+    gt[:,halfx-roadwidth:halfx+roadwidth,:] = pavement
+    gt[halfy-roadwidth:halfy+roadwidth,:,:] = pavement
+    
+    # sets of cars
+    if random:
+        cars = np.random.randint(1,carcount+1)
+        caridx = np.random.randint(0,ymax-3,size=cars)
+        caridcs = [np.arange(idx, idx+3) for idx in caridx]
+        gt[halfx-roadwidth:halfx,caridcs,:] = vehicle
+
+        caridx = np.random.randint(0,ymax-3,size=carcount-cars)
+        caridcs = [np.arange(idx, idx+3) for idx in caridx]
+        gt[caridcs,halfx:halfx+roadwidth,:] = vehicle
+    else:
+        caridx = np.arange(0,xmax, 12)
+        caridcs = [np.arange(idx, idx+3) for idx in caridx]
+        gt[halfx-roadwidth:halfx,caridcs,:] = vehicle
+        gt[caridcs,halfx:halfx+roadwidth,:] = vehicle
+
+    # Houses:
+    # Top left indices
+    tlx = halfx - roadwidth - h_size
+    ty = halfy - roadwidth - h_size
+    trx = halfx + roadwidth + 1
+    
+    if random:
+        tlh_idx = np.random.randint(0, tlx, size=h_counts)
+        trh_idx = np.random.randint(trx, xmax, size=h_counts)
+        tly_idx = np.random.randint(0, ty, size=h_counts)
+        try_idx = np.random.randint(0, ty, size=h_counts)
+        y_idcs = np.concatenate((tly_idx, try_idx), axis=None)
+        x_idcs = np.concatenate((tlh_idx, trh_idx), axis=None)
+        h_yidcs = np.array([np.arange(y,y+h_size) for y in y_idcs])
+        h_xidcs = np.array([np.arange(x, x+h_size) for x in x_idcs])
+        pts = []
+        h_idx = np.array([np.array([x,y]) for i, x_arr in enumerate(h_xidcs) for x in x_arr for y in h_yidcs[i]])
+
+    else:
+        tlh_idx = np.arange(0, tlx, (h_size+2)*2)
+        trh_idx = np.arange(trx, xmax-h_size, (h_size+2)*2)
+        tly_idx = np.arange(0, ty, (h_size+2)*2)
+        x_idcs = np.concatenate((tlh_idx, trh_idx), axis=None)
+        tlx_idcs = [np.arange(idx, idx+h_size) for idx in x_idcs]
+        tly_idcs = [np.arange(idx, idx+h_size) for idx in tly_idx]
+        h_idx = np.array([np.array([x, y]) for x_coord in tlx_idcs for x in x_coord for y_coord in tly_idcs for y in y_coord])
+    
+    # Switching around the cases
+    if testconfig:
+        gt[h_idx[:,0], h_idx[:,1], :] = house
+    else:
+        gt[h_idx[:,1],h_idx[:,0],:] = house
     
     if transpose:
         return np.swapaxes(gt,0,1)
     else:
         return gt
-        
+    return gt
+
 def vis_idx_map(gtmap, carr):
     """
         Function to turn a one-hot vector map into something displayable by imshow.
@@ -267,10 +354,9 @@ def makeObs(gt, obs_probab, classlist):
             obs[i,j] = np.random.choice(classlist, p=prob.to_numpy())
     return obs
 
-def gensampleidx(gt, obs_probab):
+def gensampleidx(gt, obs_prob):
     """
         generates an index with probability proportional to the row in obs_probab
-        TODO: turn this into a numpy-esque programming thing
     """
     sam = np.arange(gt.shape[2])
     samples = np.zeros((gt.shape[0], gt.shape[1]))
@@ -591,6 +677,15 @@ def cross_entropy(vec_true, vec_pred):
     """
     return np.sum(vec_true*np.log(vec_pred)) * (-1.0)
 
+def wrongcells(gtmap, predicted):
+    """
+        Function to return the Relative percentage of wrongly predicted cells
+    """
+    pred_idxmax = np.asarray(np.unravel_index(np.argmax(predicted, axis=2), predicted.shape))[2]
+    gt_idxmax = np.asarray(np.unravel_index(np.argmax(gtmap, axis=2), gtmap.shape))[2]
+    diff = pred_idxmax - gt_idxmax
+    return np.count_nonzero(diff) / (gtmap.shape[0] * gtmap.shape[1])         
+
 # Dirichlet functions
 def dirichlet_mode(vec_a):
     """
@@ -616,8 +711,7 @@ def testonehot():
     carr = colorarr()
     n1 = m1 = max_map_size = 64
     classlist = np.asarray(["house", "pavement", "grass", "tree", "vehicle"])
-    gtmap = np.empty((n1,m1))
-    gtmap = fillmap_idx(gtmap, classlist)
+    gtmap = scenario1(64, 64, classlist)
     img = vis_idx_map(gtmap, carr)
     fig = plt.figure()
     ax = fig.gca()
@@ -633,8 +727,7 @@ def testhierarchical():
     df = gethierarchprobab(arealist, objectlist)
     print(df)
 
-    gtmap = np.empty((64,64))
-    gtmap = fillmap_idx(gtmap, objectlist)
+    gtmap = scenario1(64, 64, objectlist)
 
     # Real prior distribution
     out = get_map_counts(gtmap)
@@ -650,6 +743,7 @@ def testhierarchical():
 
 if __name__=="__main__":
 
+    # TODO: Parameter for Lambda as mixing argument
     # testhierarchical()
     # Filename Writing Stuff
     args = parse_args()
@@ -676,8 +770,8 @@ if __name__=="__main__":
     obs_prob = observation_probabilities(classlist, maxim=likelihood)
 
     # First Level map - TODO: include the random argument
-    gtmap=np.empty((n1,m1))
-    gtmap = fillmap_idx(gtmap, classlist, scenario=simcase, transpose=transposed)
+    # gtmap=np.empty((n1,m1))
+    gtmap = scenario1(max_map_size, max_map_size, classlist, scenario=simcase, transpose=transposed)
 
     # Second Level map - TODO: include these also into the config file!
     real_distribution = get_map_counts(gtmap)
@@ -847,6 +941,19 @@ if __name__=="__main__":
     # print("Hierarchical Prediction: {}".format(hier_e.flatten().sum()))
     # print("Dynamic Predictions: {}".format(dyn_e.flatten().sum()))
 
+    ##############
+    # Testing the wrongcells thing
+
+    print("Wrong Cells:")
+    print("Dynamic: {}".format(wrongcells(gtmap, postmap_dyn)))
+    print("Hierarchical: {}".format(wrongcells(gtmap, postmap_hier)))
+    print("Predicted: {}".format(wrongcells(gtmap, predmap)))
+    print("Flat: {}".format(wrongcells(gtmap, flatmap)))
+
+
+    #
+    ###############
+
     datadict = {}
     datadict["Counts"] = countsmap
     datadict["Ground Truth"] = gtmap
@@ -865,6 +972,6 @@ if __name__=="__main__":
     configs["Pred_Hier"] = pd.DataFrame(data=pred_classes_hierar, index=classlist)
 
     # Write datadict or Plot
-    save_results(outputdir, args, datadict=datadict, configs=configs)
+    # save_results(outputdir, args, datadict=datadict, configs=configs)
     # plotresults(datadict, args)
    
