@@ -193,6 +193,7 @@ if __name__=="__main__":
     # p(z|t)
     detection_certainty = observation_probabilities(noobjects, args.accuracy)
 
+    # TODO: turn this into another function calling the runsimulation script
     tvec = np.zeros(noofiterations)
     for i in range(noofiterations):
         t1 = time.time()

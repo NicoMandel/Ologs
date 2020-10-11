@@ -19,6 +19,56 @@ import pandas as pd
 import sys
 from argparse import ArgumentParser
 
+def save_results(outputdir, args, datadict, configs):
+    """
+        Function to save the results.
+            Requires: Output directory, arguments for case discriminiation
+            dictionary, with the names being the keys and the values the data 
+            We should save:
+            All results
+            The filename represents the arguments of the simulation, with the tuple being splitable by:
+            ParamName-Value_ParamName-Value_ etc.
+    """
+
+    # Setting up the outputdirectory
+    if args.transposed:
+        transp = 1
+    else:
+        transp=0
+    if args.random:
+        rando = 1
+    else:
+        rando=0
+    
+    # With this string formatting it can be split by _ and by -
+    outname = "Sim-{}_Dim-{}_Fov-{}_Acc-{}_HOver-{}_VOver-{}_Transp-{}_Rand-{}".format(
+        args.simcase, args.dim, args.fov, args.accuracy, 1-args.overlaph, 1-args.overlapv, transp, rando
+    )
+    outdir = os.path.abspath(os.path.join(outputdir, outname))
+    try:
+        os.mkdir(outdir)
+        # pass
+    except OSError as exc:
+        if exc.errno != errno.EEXIST:
+            raise
+        pass
+    
+    # Now write the files in that output directory
+    # Use Syntax like:
+    # for k,v in dictionary.items() - for all the different arrays that I have
+    fname = os.path.join(outdir, outname+".hdf5")
+    with h5py.File(fname, "w") as f:
+        for k,v in datadict.items():
+            dset=f.create_dataset(k, data=v)
+
+    # Write the configs to an excel file. use PD.ExcelWriter here
+    fname =  os.path.abspath(os.path.join(outdir,'configs'+'.xlsx'))
+    with pd.ExcelWriter(fname) as writer:
+        for shname, df in configs.items():
+            shname = (shname[:29]) if len(shname) > 30 else shname
+            if df.shape[0] > 2:
+                df.to_excel(writer, sheet_name=shname)
+                
 # Creating the map
 def scenario1(xmax, ymax, classlist, transpose=False):
     """
@@ -521,6 +571,7 @@ def runsimulation(args, pu, ptu, obs_prob, arealist, classlist):
     # ================================
     ## SECTION 5: Return values
     # ================================
+    # TODO: Write the values to the 'tmp' directory!
     entropy_dict = {}
     entropy_dict["Predicted"] = pred_e.sum()
     entropy_dict["Flat"] = flat_e.sum()
