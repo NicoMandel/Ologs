@@ -18,8 +18,11 @@ import pandas as pd
 # Imports for file workings
 import sys
 from argparse import ArgumentParser
+import os.path
+import errno
+import h5py
 
-def save_results(outputdir, args, datadict, configs):
+def save_results(args, datadict, configs):
     """
         Function to save the results.
             Requires: Output directory, arguments for case discriminiation
@@ -29,6 +32,8 @@ def save_results(outputdir, args, datadict, configs):
             The filename represents the arguments of the simulation, with the tuple being splitable by:
             ParamName-Value_ParamName-Value_ etc.
     """
+    parentDir = os.path.dirname(__file__)
+    outputdir = os.path.abspath(os.path.join(parentDir, 'tmp'))
 
     # Setting up the outputdirectory
     if args.transposed:
@@ -41,8 +46,8 @@ def save_results(outputdir, args, datadict, configs):
         rando=0
     
     # With this string formatting it can be split by _ and by -
-    outname = "Sim-{}_Dim-{}_Fov-{}_Acc-{}_HOver-{}_VOver-{}_Transp-{}_Rand-{}".format(
-        args.simcase, args.dim, args.fov, args.accuracy, 1-args.overlaph, 1-args.overlapv, transp, rando
+    outname = "Ptu-{}_Sim-{}_Dim-{}_Fov-{}_Acc-{}_HOver-{}_VOver-{}_Transp-{}_Rand-{}".format(
+         args.ptu, args.simcase, args.dim, args.fov, args.accuracy, 1-args.overlaph, 1-args.overlapv, transp, rando
     )
     outdir = os.path.abspath(os.path.join(outputdir, outname))
     try:
@@ -62,13 +67,11 @@ def save_results(outputdir, args, datadict, configs):
             dset=f.create_dataset(k, data=v)
 
     # Write the configs to an excel file. use PD.ExcelWriter here
-    fname =  os.path.abspath(os.path.join(outdir,'configs'+'.xlsx'))
-    with pd.ExcelWriter(fname) as writer:
-        for shname, df in configs.items():
-            shname = (shname[:29]) if len(shname) > 30 else shname
-            if df.shape[0] > 2:
-                df.to_excel(writer, sheet_name=shname)
-                
+    fname =  os.path.abspath(os.path.join(outdir,"configs"+".hdf5"))
+    with h5py.File(fname, "w") as f:
+        for k,v in configs.items():
+            dset = f.create_dataset(k, data=v)
+
 # Creating the map
 def scenario1(xmax, ymax, classlist, transpose=False):
     """
@@ -448,7 +451,6 @@ def wrongcells(gtmap, predicted):
     diff = pred_idxmax - gt_idxmax
     return np.count_nonzero(diff) / (gtmap.shape[0] * gtmap.shape[1])    
 
-
 # Actually running the simulation
 def runsimulation(args, pu, ptu, obs_prob, arealist, classlist):
 
@@ -541,41 +543,21 @@ def runsimulation(args, pu, ptu, obs_prob, arealist, classlist):
         hiermap_dyn[xmin_pred:xmax_pred, ymin_pred:ymax_pred, :] = dyn_pr
 
     # ================================
-    # SECTION 4: EVALUATION
+    ## SECTION 4: Save values
     # ================================
+    datadict = {}
+    datadict["Counts"] = countsmap
+    datadict["Ground Truth"] = gtmap
+    datadict["Hierarchical-Dynamic"] = hiermap_dyn
+    datadict["Hierachical-Pre"] = hiermap
+    datadict["Predicted"] = predmap
+    datadict["Flat"] = flatmap
 
-    # Setting up the entropy arrays
-    pred_e =  np.zeros((gtmap.shape[0], gtmap.shape[1]))
-    flat_e = np.copy(pred_e)
-    
-    # Hierarchical stuff for recalculating
-    postmap_dyn = np.zeros_like(gtmap)
-    postmap_hier = np.zeros_like(gtmap)
-    dyn_e = np.copy(pred_e)
-    hier_e = np.copy(pred_e)
+    configs = {}
+    configs["Hierarch"] = ptu
+    configs["Hier_Prior"] = pu
+    configs["Observation"] = obs_prob
+    configs["Real_Dist"] = real_distribution
+    configs["Pred_Hier"] = pred_classes_hierar
 
-    # Looping over all map elements
-    for i in range(gtmap.shape[0]):
-        for j in range(gtmap.shape[1]):
-            # getting the Ground truth vector for the entropy
-            gt = gtmap[i,j,:]
-            pred_e[i,j] = cross_entropy(gt, predmap[i,j,:])
-            flat_e[i,j] = cross_entropy(gt, flatmap[i,j,:])
-
-            # For the hierarchical maps: Recreate the posterior
-            postmap_dyn[i,j,:] = recreate_posterior(hiermap_dyn[i,j,:], countsmap[i,j,:], obs_prob)
-            postmap_hier[i,j,:] = recreate_posterior(hiermap[i,j,:], countsmap[i,j,:], obs_prob)
-            dyn_e[i,j] = cross_entropy(gt, postmap_dyn[i,j,:])
-            hier_e[i,j] = cross_entropy(gt, postmap_hier[i,j,:])
-
-    # ================================
-    ## SECTION 5: Return values
-    # ================================
-    # TODO: Write the values to the 'tmp' directory!
-    entropy_dict = {}
-    entropy_dict["Predicted"] = pred_e.sum()
-    entropy_dict["Flat"] = flat_e.sum()
-    entropy_dict["Dynamic Hierarchical"] = dyn_e.sum()
-    entropy_dict["Hierarchical"] = hier_e.sum()
-
-    return entropy_dict
+    save_results(args, datadict, configs)

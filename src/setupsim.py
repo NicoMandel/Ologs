@@ -22,7 +22,6 @@ def parse_args():
     parser.add_argument("-t", "--transposed", default=False, help="Whether the map should be transposed. Default is false", action="store_true")
     parser.add_argument("-s", "--simcase", default=1, help="Which simulation case to run. Default is 1", type=int)
     parser.add_argument("-r", "--random", default=False, action="store_true", help="Whether object locations should be randomly generated or not. Only affects simulation case 2")
-    parser.add_argument("-i", "--iterations", default=10, type=int, help="Number of iterations to run for the simulation")
     parser.add_argument("--testconfig", default=False, action="store_true", help="Whether the convoluted case of overlapping areas should be used")
     parser.add_argument("-p", "--ptu", default=0, type=int, help="Which Ptu to take. If 0: choose predefined set. If 1: Choose Dynamic, if 2: Choose biggest difference")
     args = parser.parse_args()
@@ -75,15 +74,6 @@ def checkarguments(args, curr_cases=2):
             k,v
         ))
 
-def saveh5(iteration, outputdir, edict):
-    """
-        Function to save the currently best dynamic functions
-    """
-    fname = os.path.join(outputdir, str(iteration)+".hdf5")
-    with h5py.File(fname, "w") as f:
-        for k,v in edict.items():
-            dset=f.create_dataset(k, data=v)
-
 # Set the observation likelihood
 def observation_probabilities(num_classes, maxim=0.8):
     """
@@ -134,34 +124,14 @@ def gethierarchprobab(arealist, objectlist):
     df.at["forest", "vehicle"] = 0.05
     return df.to_numpy()
 
-# Evaluation function for the entropies
-def evaluateEntropies(edict):
-    """
-        Function to check the entropies dictionary in a cascaded fashion whether the conditions are fullfilled
-    """
-
-    pred = edict["Predicted"] 
-    flat = edict["Flat"] 
-    dyn = edict["Dynamic Hierarchical"] 
-    hier = edict["Hierarchical"]
-    retval = False
-    # pred should always be better than flat, but let's just double check this
-    if pred < flat:
-        # Predicted is currently (often) the best -> dynamic should be better 
-        if dyn < pred:
-            retval = True
-    return retval
-
-
 if __name__=="__main__":
     # Simulation arguments
     args = parse_args()
-    checkarguments()
-    noofiterations = args.iterations
+    checkarguments(args)
 
     # Saving directory
     parentDir = os.path.dirname(__file__)
-    outputdir = os.path.abspath(os.path.join(parentDir, 'results'))
+    indir = os.path.abspath(os.path.join(parentDir, 'tmp'))
 
     # Fixed parameters
     noobjects = 5
@@ -170,7 +140,6 @@ if __name__=="__main__":
     arealist = np.asarray(["urban", "road", "forest"])
 
 
-    # TODO: Put this into a useful dictionary
     if args.ptu == 0:
         # This is where ptu is predefined
         pu =  np.asarray([0.1, 0.2, 0.7])
@@ -178,14 +147,14 @@ if __name__=="__main__":
     elif args.ptu == 1:
         # This is where the file "dyn.hdf5" should be loaded
         f = "dyn.hdf5"
-        fpath = os.path.abspath(os.path.join(parentDir,f))
+        fpath = os.path.abspath(os.path.join(indir,f))
         di = readh5(fpath)
         ptu = di["Ptu"]
         pu = di["Pu"]
     elif args.ptu == 2:
         # This is where the file "diff.hdf5" should be loaded
         f = "diff.hdf5"
-        fpath = os.path.abspath(os.path.join(parentDir,f))
+        fpath = os.path.abspath(os.path.join(indir,f))
         di = readh5(fpath)
         ptu = di["Ptu"]
         pu = di["Pu"]
@@ -193,47 +162,9 @@ if __name__=="__main__":
     # p(z|t)
     detection_certainty = observation_probabilities(noobjects, args.accuracy)
 
-    # TODO: turn this into another function calling the runsimulation script
-    tvec = np.zeros(noofiterations)
-    for i in range(noofiterations):
-        t1 = time.time()
-        # Sampled parameters
-        # Generating the areadist p(u) and the p(t|u)
-        pu = np.random.dirichlet(np.ones(noareas))
-        ptu = np.random.dirichlet(np.ones(noobjects), noareas)
-        try:
-            entropy_dict = rs.runsimulation(args, pu, ptu, obs_prob=detection_certainty, arealist=arealist, classlist=classlist)
-        except Exception as e:
-            print(sys.exc_info()[0], sys.exc_info()[2].tb_lineno)
-        
-        # Set the current best on the first iteration
-        if i == 0:
-            dyn_curr_best = max(entropy_dict.values())
-            curr_diff_best = 0
-
-        # First test: see if Dynamic is better than 
-        if evaluateEntropies(entropy_dict):
-            dyn = entropy_dict["Dynamic Hierarchical"]
-            pred = entropy_dict["Predicted"] 
-            diff = pred-dyn
-            if dyn < dyn_curr_best or (diff > curr_diff_best):
-                # Set the new best
-                dyn_curr_best = dyn
-                curr_diff_best = diff
-
-                # Save the data in a h5py format
-                entropy_dict["Pu"] = pu
-                entropy_dict["Ptu"] = ptu
-                saveh5(i, outputdir, entropy_dict)
-
-        t2 = time.time()
-        diff = t2-t1
-        tvec[i] = diff
-        if i%10 == 0:
-            avg_time = tvec.sum() / (i+1)
-            rem_time =  avg_time*(noofiterations-i)
-            print("Finished Simulation number: {} of {}. Average time per Simulation: {}, ETA: {}s".format(
-                i, noofiterations, avg_time, rem_time
-            ))
-
+    # Sampled parameters
+    try:
+        rs.runsimulation(args, pu, ptu, obs_prob=detection_certainty, arealist=arealist, classlist=classlist)
+    
+    
 
