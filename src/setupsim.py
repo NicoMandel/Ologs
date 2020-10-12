@@ -7,6 +7,7 @@ from argparse import ArgumentParser
 import h5py
 import runsim as rs
 import time
+import pandas as pd
 
 # Argument parsing and Saving 
 def parse_args():
@@ -50,12 +51,12 @@ def checkarguments(args, curr_cases=2):
     #  Check on the Overlap 
     for over in overlap:
         if (over % (1.0 / (2*fov)) != 0):
-            sys.exit("Error: Overlap {} Not a multiple of: {}".format(
+            raise ValueError("Error: Overlap {} Not a multiple of: {}".format(
                 over, (1.0 / (2*fov))
             ))
     # Check on the Sim Cases
     if args.simcase > curr_cases:
-        sys.exit("Sim Cases invalid. Only {} cases currently exist".format(curr_cases))
+        raise ValueError("Sim Cases invalid. Only {} cases currently exist".format(curr_cases))
     
     # Check if random is true if it is simcase 2
     if args.random:
@@ -64,7 +65,11 @@ def checkarguments(args, curr_cases=2):
 
     # Check if the -p flag is smaller than 3
     if args.ptu > 2:
-        sys.exit("Error: p-flag not a valid configuration: {}, choose a value between 0 and 2".format(args.ptu))
+        raise ValueError("Error: p-flag not a valid configuration: {}, choose a value between 0 and 2".format(args.ptu))
+    
+    # Check if dims is divisble by 4
+    if args.dim % 4 != 0:
+        raise ValueError("Dimension {} not divisble by 4".format(args.dim))
 
     # If everything is fine, continue:
     print("All checks passed. Continuing with case:")
@@ -126,9 +131,12 @@ def gethierarchprobab(arealist, objectlist):
 
 if __name__=="__main__":
     # Simulation arguments
-    args = parse_args()
-    checkarguments(args)
-
+    try:
+        args = parse_args()
+        checkarguments(args)
+    except ValueError as e:
+        sys.exit(1)
+    
     # Saving directory
     parentDir = os.path.dirname(__file__)
     indir = os.path.abspath(os.path.join(parentDir, 'tmp'))
@@ -162,9 +170,8 @@ if __name__=="__main__":
     # p(z|t)
     detection_certainty = observation_probabilities(noobjects, args.accuracy)
 
-    # Sampled parameters
-    try:
-        rs.runsimulation(args, pu, ptu, obs_prob=detection_certainty, arealist=arealist, classlist=classlist)
+    # Run the final simmulation
+    rs.runsimulation(args, pu, ptu, obs_prob=detection_certainty, arealist=arealist, classlist=classlist)
     
     
 
