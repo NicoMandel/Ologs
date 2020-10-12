@@ -47,7 +47,7 @@ def save_results(args, datadict, configs):
     if args.testconfig:
         testconf = 1
     else:
-        teconf=0
+        testconf=0
     
     # With this string formatting it can be split by _ and by -
     outname = "Ptu-{}_Sim-{}_Dim-{}_Fov-{}_Acc-{}_HOver-{}_VOver-{}_Transp-{}_Rand-{}_Test-{}".format(
