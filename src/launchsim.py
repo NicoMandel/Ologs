@@ -42,9 +42,22 @@ if __name__=="__main__":
     rand = [False, True]
     testconf = [False, True]
 
+    # Reduced Options:
+    # dims = [64]
+    # simcases = [1]
+    # fov = [1, 2]
+    # overh= overv = [0.25, 0.5]
+    # acc = [0.7, 0.8]
+    # probs = [0, 1]
+    # rand = [False]
+    # testconf = [False]
+
     # The setup
     noofiterations = len(dims) * len(simcases) * len(fov) * len(overh) * len(overv) * len(acc) * len(probs) *\
                     len(trans) * len(rand) * len(testconf)
+    # noofiterations = len(dims) * len(simcases) * len(fov) * len(overh) * len(overv) * len(probs) * len(acc)
+    print("Running a total of {} simulations".format(noofiterations))
+    
     t1 = time.time()
     ctr = 0
     tenpercent = 0
@@ -73,7 +86,10 @@ if __name__=="__main__":
                                                 launchstring += " -c"
                                             # The actual launching of the process
                                             try:
-                                                subprocess.run(launchstring)
+                                                subprocess.run(launchstring, shell=True)
+                                                # print("Launched Simulation {} Successfully!".format(
+                                                #     launchstring
+                                                # ))
                                             except Exception as e:
                                                 print("Simulation Failed for case: {}".format(
                                                     launchstring    
@@ -87,8 +103,8 @@ if __name__=="__main__":
                                             diff = t2-t1
                                             ctr +=1
                                             avg_time = diff / ctr
-                                            if ctr % (noofiterations / 10) == 0:
+                                            if ctr % (noofiterations / 100) == 0:
                                                 tenpercent +=1
                                                 print("Reached {} %, Avg time: {}, ETA: {}".format(
-                                                    tenpercent * 10, avg_time, (noofiterations-ctr) * avg_time
+                                                    tenpercent, avg_time, (noofiterations-ctr) * avg_time
                                                 ))

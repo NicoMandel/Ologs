@@ -23,7 +23,7 @@ def parse_args():
     parser.add_argument("-t", "--transposed", default=False, help="Whether the map should be transposed. Default is false", action="store_true")
     parser.add_argument("-s", "--simcase", default=1, help="Which simulation case to run. Default is 1", type=int)
     parser.add_argument("-r", "--random", default=False, action="store_true", help="Whether object locations should be randomly generated or not. Only affects simulation case 2")
-    parser.add_argument("--testconfig", default=False, action="store_true", help="Whether the convoluted case of overlapping areas should be used")
+    parser.add_argument("-c", "--testconfig", default=False, action="store_true", help="Whether the convoluted case of overlapping areas should be used")
     parser.add_argument("-p", "--ptu", default=0, type=int, help="Which Ptu to take. If 0: choose predefined set. If 1: Choose Dynamic, if 2: Choose biggest difference")
     args = parser.parse_args()
     return args

@@ -33,7 +33,7 @@ def save_results(args, datadict, configs):
             ParamName-Value_ParamName-Value_ etc.
     """
     parentDir = os.path.dirname(__file__)
-    outputdir = os.path.abspath(os.path.join(parentDir, 'tmp'))
+    outputdir = os.path.abspath(os.path.join(parentDir, 'tmp', 'results'))
 
     # Setting up the outputdirectory
     if args.transposed:
@@ -46,8 +46,8 @@ def save_results(args, datadict, configs):
         rando=0
     
     # With this string formatting it can be split by _ and by -
-    outname = "Ptu-{}_Sim-{}_Dim-{}_Fov-{}_Acc-{}_HOver-{}_VOver-{}_Transp-{}_Rand-{}".format(
-         args.ptu, args.simcase, args.dim, args.fov, args.accuracy, 1-args.overlaph, 1-args.overlapv, transp, rando
+    outname = "Ptu-{}_Sim-{}_Dim-{}_Fov-{}_Acc-{}_HOver-{}_VOver-{}_Transp-{}_Rand-{}_Test-{}".format(
+         args.ptu, args.simcase, args.dim, args.fov, args.accuracy, 1-args.overlaph, 1-args.overlapv, transp, rando, args.testconfig
     )
     outdir = os.path.abspath(os.path.join(outputdir, outname))
     try:
@@ -70,7 +70,7 @@ def save_results(args, datadict, configs):
     fname =  os.path.abspath(os.path.join(outdir,"configs"+".hdf5"))
     with h5py.File(fname, "w") as f:
         for k,v in configs.items():
-            dset = f.create_dataset(k, data=v)
+            dset = f.create_dataset(k, data=v.astype(np.float64))
 
 # Creating the map
 def scenario1(xmax, ymax, classlist, transpose=False):
@@ -195,7 +195,7 @@ def scenario2(xmax, ymax, classlist, random=False, roadwidth=2, carcount=4, h_si
     else:
         tlh_idx = np.arange(0, tlx, (h_size+2)*2)
         trh_idx = np.arange(trx, xmax-h_size, (h_size+2)*2)
-        tly_idx = np.arange(0, ty, (h_size+2)*2)
+        tly_idx = np.arange(0, ty-h_size, (h_size+2)*2)
         x_idcs = np.concatenate((tlh_idx, trh_idx), axis=None)
         tlx_idcs = [np.arange(idx, idx+h_size) for idx in x_idcs]
         tly_idcs = [np.arange(idx, idx+h_size) for idx in tly_idx]
