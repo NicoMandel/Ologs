@@ -44,10 +44,14 @@ def save_results(args, datadict, configs):
         rando = 1
     else:
         rando=0
+    if args.testconfig:
+        testconf = 1
+    else:
+        teconf=0
     
     # With this string formatting it can be split by _ and by -
     outname = "Ptu-{}_Sim-{}_Dim-{}_Fov-{}_Acc-{}_HOver-{}_VOver-{}_Transp-{}_Rand-{}_Test-{}".format(
-         args.ptu, args.simcase, args.dim, args.fov, args.accuracy, 1-args.overlaph, 1-args.overlapv, transp, rando, args.testconfig
+         args.ptu, args.simcase, args.dim, args.fov, args.accuracy, 1-args.overlaph, 1-args.overlapv, transp, rando, testconf
     )
     outdir = os.path.abspath(os.path.join(outputdir, outname))
     try:
