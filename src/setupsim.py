@@ -71,6 +71,9 @@ def checkarguments(args, curr_cases=2):
     if args.dim % 4 != 0:
         raise ValueError("Dimension {} not divisble by 4".format(args.dim))
 
+    if (args.testconfig and args.simcase == 1):
+        print("Testconfig used with simulation case 1. Irrelevant parameter ignored")
+        
     # If everything is fine, continue:
     print("All checks passed. Continuing with case:")
     ar = vars(args)
@@ -170,8 +173,11 @@ if __name__=="__main__":
     # p(z|t)
     detection_certainty = observation_probabilities(noobjects, args.accuracy)
 
-    # Run the final simmulation
-    rs.runsimulation(args, pu, ptu, obs_prob=detection_certainty, arealist=arealist, classlist=classlist)
-    
+    # Safeguard for the stuff
+    try:
+        # Run the final simmulation
+        rs.runsimulation(args, pu, ptu, obs_prob=detection_certainty, arealist=arealist, classlist=classlist)
+    except OSError:
+        raise
     
 

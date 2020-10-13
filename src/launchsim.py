@@ -43,14 +43,15 @@ if __name__=="__main__":
     testconf = [False, True]
 
     # Reduced Options:
-    # dims = [64]
-    # simcases = [1]
-    # fov = [1, 2]
-    # overh= overv = [0.25, 0.5]
-    # acc = [0.7, 0.8]
-    # probs = [0, 1]
-    # rand = [False]
-    # testconf = [False]
+    # dims = [48]
+    # simcases = [2]
+    # fov = [2]
+    # overh = overv = [0.5]
+    # acc = [0.8]
+    # probs = [0]
+    # rand = [True, False]
+    # trans= [True]
+    # testconf = [True, False]
 
     # The setup
     noofiterations = len(dims) * len(simcases) * len(fov) * len(overh) * len(overv) * len(acc) * len(probs) *\
@@ -73,7 +74,7 @@ if __name__=="__main__":
                                 for tr in trans:
                                     for ra in rand:
                                         for tc in testconf:
-                                            # Creating the basic string
+                                            # Creating the string
                                             launchstring = basestr.format(
                                                 filetorun, dim, f, a, sim, prob, oh, ov
                                             )

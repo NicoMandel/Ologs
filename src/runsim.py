@@ -56,11 +56,10 @@ def save_results(args, datadict, configs):
     outdir = os.path.abspath(os.path.join(outputdir, outname))
     try:
         os.mkdir(outdir)
-        # pass
     except OSError as exc:
-        if exc.errno != errno.EEXIST:
-            raise
-        pass
+        # if exc.errno != errno.EEXIST:
+        raise
+        # pass
     
     # Now write the files in that output directory
     # Use Syntax like:
@@ -185,10 +184,10 @@ def scenario2(xmax, ymax, classlist, random=False, roadwidth=2, carcount=4, h_si
     trx = halfx + roadwidth + 1
     
     if random:
-        tlh_idx = np.random.randint(0, tlx, size=h_counts)
-        trh_idx = np.random.randint(trx, xmax, size=h_counts)
-        tly_idx = np.random.randint(0, ty, size=h_counts)
-        try_idx = np.random.randint(0, ty, size=h_counts)
+        tlh_idx = np.random.randint(0, tlx-h_size, size=h_counts)
+        trh_idx = np.random.randint(trx, xmax-h_size, size=h_counts)
+        tly_idx = np.random.randint(0, ty-h_size, size=h_counts)
+        try_idx = np.random.randint(0, ty-h_size, size=h_counts)
         y_idcs = np.concatenate((tly_idx, try_idx), axis=None)
         x_idcs = np.concatenate((tlh_idx, trh_idx), axis=None)
         h_yidcs = np.array([np.arange(y,y+h_size) for y in y_idcs])
@@ -475,10 +474,13 @@ def runsimulation(args, pu, ptu, obs_prob, arealist, classlist):
     testconfig = args.testconfig
     
     # Ground Truth map
-    if simcase == 1:
-        gtmap = scenario1(max_map_size, max_map_size, classlist, transpose=transposed)
-    elif simcase == 2:
-        gtmap = scenario2(max_map_size, max_map_size, classlist, transpose=transposed, random=rand, testconfig=testconfig)
+    try:
+        if simcase == 1:
+            gtmap = scenario1(max_map_size, max_map_size, classlist, transpose=transposed)
+        elif simcase == 2:
+            gtmap = scenario2(max_map_size, max_map_size, classlist, transpose=transposed, random=rand, testconfig=testconfig)
+    except OSError:
+        raise OSError("Error in creating the simulation map")
 
     real_distribution = get_map_counts(gtmap)
     pred_classes_hierar = pu @ ptu
@@ -564,4 +566,8 @@ def runsimulation(args, pu, ptu, obs_prob, arealist, classlist):
     configs["Real_Dist"] = real_distribution
     configs["Pred_Hier"] = pred_classes_hierar
 
-    save_results(args, datadict, configs)
+    # Safeguard if the file already exists, do not overwrite
+    try:
+        save_results(args, datadict, configs)
+    except OSError:
+        raise

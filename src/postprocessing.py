@@ -4,6 +4,7 @@ import h5py
 import numpy as np
 import pandas as pd
 import os
+import time
 import matplotlib.pyplot as plt
 
 """
@@ -303,10 +304,12 @@ def collectalldata(outdir):
     metrics = np.asarray(["Entropy", "Count"])
 
     cdict = getcasesdict()
-    arr = getcasesarr()
+    arr = getcasesarr(algos.size, metrics.size)
 
     dirs = [d for d in os.listdir(outdir) if os.path.isdir(os.path.join(outdir, d))]
-    for d in dirs:
+    alldirs = len(dirs)
+    t1 = time.time()
+    for i, d in enumerate(dirs):
         casedict = splitfilename(d)
         fname = os.path.abspath(os.path.join(outputdir, d, d+".hdf5"))
         datadict = readh5(fname=fname)
@@ -324,6 +327,12 @@ def collectalldata(outdir):
             eind = tuple(np.concatenate((ind, algo_ind, [0]), axis=None))
             arr[wind] = wc
             arr[eind] = v
+
+        if i % (alldirs/10) == 0:
+            t2 = time.time() - t1
+            tperit = t2 / (i+1)
+            print("Finished with {} % \of the {} cases. Took {} s, ETA: {}".format( i//alldirs, alldirs, tperit, (alldirs-i)*tperit))
+
     return arr
 
 def getMetrics(datadict, configdict):
@@ -385,10 +394,10 @@ def findindex(casedict, cdict):
         inddict[k] = ind
     
     indices = np.asarray([inddict["Dim"], inddict["Sim"], inddict["Fov"], inddict["HOver"], inddict["VOver"], inddict["Acc"],
-                inddict["Ptu"], inddict["Transp"], inddict["Rand"]])
+                inddict["Ptu"], inddict["Transp"], inddict["Rand"], inddict["Test"]])
     return indices 
 
-# Setup functions for the cases
+# Setup functions for the array
 def getcasesarr(algos=4, metrics=2):
     """
         Function to get all the simulation cases that we are running through / have been running through
@@ -405,9 +414,7 @@ def getcasesarr(algos=4, metrics=2):
     rand = np.asarray([False, True])
     testconf = np.asarray([False, True])
     
-    # TODO: Add fields here for the a) different metrics b) different simulation cases
-    # TODO: include the testconf.size here as well! 
-    arr = np.zeros((dims.size, simcases.size, fov.size, overh.size, overv.size, acc.size, probs.size, trans.size, rand.size, algos, metrics))
+    arr = np.zeros((dims.size, simcases.size, fov.size, overh.size, overv.size, acc.size, probs.size, trans.size, rand.size, testconf.size, algos, metrics))
     return arr
 
 def getcasesdict():
@@ -424,6 +431,7 @@ def getcasesdict():
     cdict["Transp"] = np.asarray([0, 1])
     cdict["Rand"] = np.asarray([0, 1])
     cdict["Ptu"] = np.asarray([0, 1, 2])
+    cdict["Test"] = np.asarray([0, 1])
     return cdict
 
 # For Manipulation of collected results
@@ -532,14 +540,35 @@ def createnamefromidxdict(idxdict):
     """
         Function to turn an index dictionary into an appropriate filename for the h5py module to load
     """
-    # TODO: Currently unsused: _Test-{}
-    outname = "Ptu-{}_Sim-{}_Dim-{}_Fov-{}_Acc-{}_HOver-{}_VOver-{}_Transp-{}_Rand-{}".format(
+    outname = "Ptu-{}_Sim-{}_Dim-{}_Fov-{}_Acc-{}_HOver-{}_VOver-{}_Transp-{}_Rand-{}_Test-{}".format(
          int(idxdict["Ptu"]), int(idxdict["Sim"]), int(idxdict["Dim"]), int(idxdict["Fov"]),
-          idxdict["Acc"], idxdict["HOver"], idxdict["VOver"], int(idxdict["Transp"]), int(idxdict["Rand"])
+          idxdict["Acc"], idxdict["HOver"], idxdict["VOver"], int(idxdict["Transp"]), int(idxdict["Rand"]),
+          int(idxdict["Test"])
     )
-    # TODO: Currently Unused: idxdict["Test"]
     return outname
 
+def getAxisDict():
+    """
+        Function to get an axis lookup for use with np.take()
+        TODO: Check what position "Test" gets read into!
+    """
+    a = {}
+    a["Dims"] = 0
+    a["Sim"] = 1
+    a["Fov"] = 2
+    a["HOver"] = 3
+    a["VOver"] = 4
+    a["Acc"] = 5
+    a["Ptu"] = 6
+    a["Transp"] = 7
+    a["Rand"] = 8
+    a["Test"] = 9
+    a["Algo"] = 10
+    a["Metric"] = 11
+    return a
+
+# TODO: use axis argument with Numpy take:
+# https://numpy.org/doc/stable/reference/generated/numpy.take.html
 
 if __name__=="__main__":
 
@@ -551,9 +580,9 @@ if __name__=="__main__":
     # Look in the 'tmp' directory
     parentDir = os.path.dirname(__file__)
     outputdir = os.path.abspath(os.path.join(parentDir, 'tmp', 'results'))
-    # arr = collectalldata(outputdir)
+    arr = collectalldata(outputdir)
     # savebigarr(arr, outputdir)
-
+    axisdict = getAxisDict()
     # Loading the big array of all the processed results
     arr = readColResults(outputdir, fname="CollResults.hdf5")
     idx = findsmallest(arr, algos)
