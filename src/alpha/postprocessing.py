@@ -10,21 +10,19 @@ import matplotlib.pyplot as plt
 """
     CAREFUL - THIS IS THE POSTPROCESSING FILE FOR THE ALPHA - PARAMETRISED STUDY - HAS DIFFERENT VALUES AND OBJECTIVES
     Order of the Dimensions of the Big Array  - IN THIS ORDER!
-        0. dims = np.asarray([48, 64])
-        1. simcases = np.asarray([1, 2])
-        2. fov = np.asarray([1, 2, 3])
+        0. dims = np.asarray([64])
+        1. simcases = np.asarray([1])
+        2. fov = np.asarray([2])
         3. overh
-        4. overv = np.asarray([0.25, 0.5, 0.75, 1.0/3.0, 2.0/3.0])
-        5. acc = np.asarray([0.6, 0.7, 0.8, 0.9, 0.95])
+        4. overv = np.asarray([0.25, 0.5, 0.75])
+        5. acc = np.asarray([0.8, 0.9])
         6. probs = np.asarray([0, 1, 2])
 
-        # Boolean options
-        7. trans = np.asarray([False, True])
-        8. rand = np.asarray([False, True])
-        9. testconf = np.asarray([False, True])
+        7. alpha = np.linspace(0,1, num=6)
 
-        10. Algorithms = Flat, Pred, Hier, Dyn
-        11. Metrics = Entropy, Count
+        # Absolutely no boolean option
+        8. Algorithms = Flat, Pred, Hier, Dyn
+        9. Metrics = Entropy, Count
 
 """
 
@@ -300,7 +298,7 @@ def plotcase(casename, resultsdir):
 
 # Functions for manipulating the output data
 # function to collect ALL data in the output directory 
-def collectalldata(outdir):
+def collectalldata(outdir, cdict):
     """
         Function to collect ALL cases in the output directory. Cases and the directory need to be specified
     """
@@ -308,7 +306,6 @@ def collectalldata(outdir):
     algos = np.asarray(["Flat", "Predicted", "Hierarchical", "Hierarchical Dynamic"])
     metrics = np.asarray(["Entropy", "Count"])
 
-    cdict = getcasesdict()
     arr = getcasesarr(algos.size, metrics.size)
 
     dirs = [d for d in os.listdir(outdir) if os.path.isdir(os.path.join(outdir, d))]
@@ -399,7 +396,7 @@ def findindex(casedict, cdict):
         inddict[k] = ind
     
     indices = np.asarray([inddict["Dim"], inddict["Sim"], inddict["Fov"], inddict["HOver"], inddict["VOver"], inddict["Acc"],
-                inddict["Ptu"], inddict["Transp"], inddict["Rand"], inddict["Test"]])
+                inddict["Ptu"], inddict["Alpha"]])
     return indices 
 
 # Setup functions for the array
@@ -407,19 +404,14 @@ def getcasesarr(algos=4, metrics=2):
     """
         Function to get all the simulation cases that we are running through / have been running through
     """
-    dims = np.asarray([48, 64])
-    simcases = np.asarray([1, 2])
-    fov = np.asarray([1, 2, 3])
-    overh = overv = np.asarray([0.25, 0.5, 0.75, 1.0/3.0, 2.0/3.0])
-    acc = np.asarray([0.6, 0.7, 0.8, 0.9, 0.95])
+    dims = np.asarray([48])
+    simcases = np.asarray([1])
+    fov = np.asarray([2])
+    overh = overv = np.asarray([0.25, 0.5, 0.75])
+    acc = np.asarray([0.8, 0.9])
     probs = np.asarray([0, 1, 2])
-
-    # The boolean options
-    trans = np.asarray([False, True])
-    rand = np.asarray([False, True])
-    testconf = np.asarray([False, True])
-    
-    arr = np.zeros((dims.size, simcases.size, fov.size, overh.size, overv.size, acc.size, probs.size, trans.size, rand.size, testconf.size, algos, metrics))
+    alpha = np.linspace(0,1,num=6)
+    arr = np.zeros((dims.size, simcases.size, fov.size, overh.size, overv.size, acc.size, probs.size, alpha.size, algos, metrics))
     return arr
 
 def getcasesdict():
@@ -427,26 +419,15 @@ def getcasesdict():
         Function to get the dictionary with all the cases
     """
     cdict = {}
-    cdict["Dim"] = np.asarray([48, 64])
-    cdict["Sim"] = np.asarray([1, 2])
-    cdict["Fov"] = np.asarray([1, 2, 3])
-    cdict["HOver"] = np.asarray([0.25, 0.5, 0.75, 1.0/3.0, 2.0/3.0])
-    cdict["VOver"] = np.asarray([0.25, 0.5, 0.75, 1.0/3.0, 2.0/3.0])
-    cdict["Acc"] = np.asarray([0.6, 0.7, 0.8, 0.9, 0.95])
-    cdict["Transp"] = np.asarray([0, 1])
-    cdict["Rand"] = np.asarray([0, 1])
+    cdict["Dim"] = np.asarray([64])
+    cdict["Sim"] = np.asarray([1])
+    cdict["Fov"] = np.asarray([2])
+    cdict["HOver"] = np.asarray([0.25, 0.5, 0.75])
+    cdict["VOver"] = np.asarray([0.25, 0.5, 0.75])
+    cdict["Acc"] = np.asarray([0.8, 0.9])
     cdict["Ptu"] = np.asarray([0, 1, 2])
-    cdict["Test"] = np.asarray([0, 1])
+    cdict["Alpha"] = np.linspace(0, 1, num=6)
     return cdict
-
-# unnecessary - since each case has ALL algorithms and ALL metrics
-# def augmentcasesdict(cdict):
-#     """
-#         Function to augment the case dictionary with the Algorithms and the metrics
-#     """
-#     cdict["Algo"] = np.asarray([0, 1, 2, 3])
-#     cdict["Metric"] = np.asarray([0, 1])
-#     return cdict
 
 # For Manipulation of collected results
 def savebigarr(arr, outputdir):
@@ -481,10 +462,8 @@ def getcasefromindex(ind, cases):
     cdict["VOver"] = cases["VOver"][ind[4]]
     cdict["Acc"] = cases["Acc"][ind[5]]
     cdict["Ptu"] = cases["Ptu"][ind[6]]
-    # Boolean Options
-    cdict["Transp"] = cases["Transp"][ind[7]]
-    cdict["Rand"] = cases["Rand"][ind[8]]
-    cdict["Test"] = cases["Test"][ind[9]]
+
+    cdict["Alpha"] = cases["Alpha"][ind[7]]
 
     return cdict
 
@@ -555,17 +534,14 @@ def createnamefromidxdict(idxdict):
     """
         Function to turn an index dictionary into an appropriate filename for the h5py module to load
     """
-    outname = "Ptu-{}_Sim-{}_Dim-{}_Fov-{}_Acc-{}_HOver-{}_VOver-{}_Transp-{}_Rand-{}_Test-{}".format(
+    outname = "Ptu-{}_Sim-{}_Dim-{}_Fov-{}_Acc-{}_HOver-{}_VOver-{}_Alpha-{:.1f}".format(
          int(idxdict["Ptu"]), int(idxdict["Sim"]), int(idxdict["Dim"]), int(idxdict["Fov"]),
-          idxdict["Acc"], idxdict["HOver"], idxdict["VOver"], int(idxdict["Transp"]), int(idxdict["Rand"]),
-          int(idxdict["Test"])
-    )
+          idxdict["Acc"], idxdict["HOver"], idxdict["VOver"], idxdict["Alpha"])
     return outname
 
 def getAxisDict():
     """
         Function to get an axis lookup for use with np.take()
-        TODO: Check what position "Test" gets read into!
     """
     a = {}
     a["Dims"] = 0
@@ -575,11 +551,9 @@ def getAxisDict():
     a["VOver"] = 4
     a["Acc"] = 5
     a["Ptu"] = 6
-    a["Transp"] = 7
-    a["Rand"] = 8
-    a["Test"] = 9
-    a["Algo"] = 10
-    a["Metric"] = 11
+    a["Alpha"] = 7
+    a["Algo"] = 8
+    a["Metric"] = 9
     return a
 
 # https://numpy.org/doc/stable/reference/generated/numpy.take.html
@@ -625,10 +599,10 @@ def comparearray(arr):
     # a_p
 
     diff_fp = comparetwoarrays(a_f, a_p)
-    diff_ah = comparetwoarrays(a_f, a_h)
+    diff_fh = comparetwoarrays(a_f, a_h)
     diff_pd = comparetwoarrays(a_p, a_d)
     pos_fp, neg_fp = getposnegcounts(diff_fp)
-    pos_hf, neg_hf = getposnegcounts(diff_ah)
+    pos_hf, neg_hf = getposnegcounts(diff_fh)
     pos_pd, neg_pd = getposnegcounts(diff_pd)
     print("Done with the counts where condition is fulfilled.")
 
@@ -650,49 +624,6 @@ def comparetwoarrays(a1, a2):
         Function to subtract a2 from a1. a1 should be the bigger one (Higher value) then
     """
     return a1 - a2
-
-def getbigger(diff_arr):
-    """
-        Returns a list of indices where the input array is bigger than 0
-    """
-
-def getsmaller(diff_arr):
-    """
-        Returns a list of indices where the input array is smaller than 0
-    """
-    res = np.where(diff_arr > 0)
-    listofcoord = list(zip([r for r in res]))
-    return listofcoord
-
-# def manipulatesubarray(ent, axisdict):
-#     """
-#         Manipulate the subarray with the appropriate subindexing
-#     """
-#     ax0 = axisdict["Ptu"]
-#     ax0_ind = 0
-#     ptu0 = np.take(ent, ax0_ind, axis=ax0)
-
-#     ax1 = axisdict["Sim"]
-#     ax1_ind = 1
-#     ptu1 = np.take(ent, ax1_ind, axis=ax0)
-#     if ax0 < ax1:
-#         ax1 -= 1
-#     ptu1sim1 = np.take(ptu1, ax1_ind, axis=ax1)
-
-#     indices_ptu = comparearray(ptu0)
-#     indices_ptusim1 = comparearray(ptu1sim1)
-
-#     # Insert the index of what we took out back in
-#     tgt = np.full(indices_ptu.shape[0], ax0_ind)
-#     nind = np.insert(indices_ptu, ax0, tgt, axis=1)
-    
-#     # If we took out multiple things, walk back up.
-#     tgt1 = np.full(indices_ptusim1.shape[0], ax1_ind)
-#     nnind = np.insert(indices_ptusim1, ax1, tgt1, axis=1)
-#     nnnind = np.insert(nnind, ax0, tgt1, axis=1)
-
-
-#     print("Testline")
 
 def manarr(e, axisdict, keytup, valtup):
     """
@@ -728,7 +659,6 @@ def manarr(e, axisdict, keytup, valtup):
     return nind
 
 
-
 if __name__=="__main__":
 
     # Prelims for all the cases that we have
@@ -739,7 +669,7 @@ if __name__=="__main__":
     # Look in the 'tmp' directory
     parentDir = os.path.dirname(__file__)
     outputdir = os.path.abspath(os.path.join(parentDir, 'tmp', 'results'))
-    # arr = collectalldata(outputdir)
+    # arr = collectalldata(outputdir, casesdict)
     # savebigarr(arr, outputdir)
     # Loading the big array of all the processed results
     arr = readColResults(outputdir, fname="CollResults.hdf5")
@@ -750,7 +680,8 @@ if __name__=="__main__":
     # Split by the two metrics that we have
     entr = arr[...,0]
     wrong = arr[...,1]
-
+    ind_e = comparearray(entr)
+    ind_w = comparearray(wrong)
     # ====================
     # TODO: WHICH RESULTS DO I ACTUALLY WANT!!!!
     # 1. The number of simulations where:
@@ -761,8 +692,8 @@ if __name__=="__main__":
     # 2.1. predicted is better than flat
     # 2.2 Hierarchical Dynamic is better than predicted
     # ===================
-    keytup = ("Ptu", "Sim", "Acc", "Test", "Transp", "Dims")
-    valtup = (2, 0, 2, 0, 0, 1)
+    keytup = ("Ptu", "Sim", "Acc", "Alpha")
+    valtup = (2, 0, 0, 2)
     indicestrialrundonotusethisforanything = manarr(entr, axisdict, keytup, valtup)
 
     for _ in range(min(5, indicestrialrundonotusethisforanything.shape[0])):
@@ -771,13 +702,9 @@ if __name__=="__main__":
         casenameforrandomthingy = createnamefromidxdict(somecasesdictionary)
         plotcase(casenameforrandomthingy, outputdir)
 
-    # manipulatesubarray(entr, axisdict)    
-    indices_e = comparearray(entr)
-    indices_w = comparearray(wrong)
-
     # Pick a random index for both
-    rand_case_e = indices_e[np.random.randint(indices_e.shape[0])]
-    rand_case_w = indices_w[np.random.randint(indices_w.shape[0])]
+    rand_case_e = ind_e[np.random.randint(ind_e.shape[0])]
+    rand_case_w = ind_w[np.random.randint(ind_w.shape[0])]
     rce_idxd = getcasefromindex(rand_case_e, casesdict)
     rcw_idxd = getcasefromindex(rand_case_w, casesdict)
     rce_cn = createnamefromidxdict(rce_idxd)

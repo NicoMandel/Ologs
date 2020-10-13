@@ -31,16 +31,20 @@ if __name__=="__main__":
     
     # All the available options
     dims = [64]
-    simcases = [1]
+    simcases = [1, 2]
     fov = [2]
     overh = overv = [0.25, 0.5, 0.75]
-    acc = [0.8, 0.9]
+    acc = [0.6, 0.7, 0.8, 0.9]
     probs = [0, 1, 2]
+    rand = [False, True]
+    testconf = [False, True]
 
     # The different alphas
     alpha = np.linspace(0, 1, num=6)
     # The setup
-    noofiterations = len(dims) * len(simcases) * len(fov) * len(overh) * len(overv) * len(acc) * len(probs) * len(alpha)
+    noofiterations = len(dims) * len(simcases) * len(fov) * len(overh) * len(overv) * len(acc) * len(probs) * len(alpha) *\
+        len(rand) * len(testconf)
+
     print("Running a total of {} simulations".format(noofiterations))
     
     t1 = time.time()
@@ -54,29 +58,35 @@ if __name__=="__main__":
                     for prob in probs:
                         for oh in overh:
                             for ov in overv:
-                                for a in alpha:
-                                    # Creating the string
-                                    launchstring = basestr.format(
-                                        filetorun, dim, f, ac, sim, prob, oh, ov, a
-                                    )
-                                    # The actual launching of the process
-                                    try:
-                                        subprocess.run(launchstring, shell=True)
-                                    except Exception as e:
-                                        print("Simulation Failed for case: {}".format(
-                                            launchstring    
-                                        ))
-                                        print("Exception Type: {}, File: {}, Line: {}".format(
-                                            sys.exc_info()[0], os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1], sys.exc_info()[2].tb_lineno
-                                            ))
+                                for ra in rand:
+                                    for tc in testconf:
+                                        for a in alpha:
+                                            # Creating the string
+                                            launchstring = basestr.format(
+                                                filetorun, dim, f, ac, sim, prob, oh, ov, a
+                                            )
+                                            if ra:
+                                                launchstring += " -r"
+                                            if tc:
+                                                launchstring += " -c"
+                                            # The actual launching of the process
+                                            try:
+                                                subprocess.run(launchstring, shell=True)
+                                            except Exception as e:
+                                                print("Simulation Failed for case: {}".format(
+                                                    launchstring    
+                                                ))
+                                                print("Exception Type: {}, File: {}, Line: {}".format(
+                                                    sys.exc_info()[0], os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1], sys.exc_info()[2].tb_lineno
+                                                    ))
 
-                                        # Timing and checking
-                                        t2 = time.time()        
-                                        diff = t2-t1
-                                        ctr +=1
-                                        avg_time = diff / ctr
-                                        if ctr % (noofiterations / 100) == 0:
-                                            tenpercent +=1
-                                            print("Reached {} %, Avg time: {}, ETA: {}".format(
-                                                tenpercent, avg_time, (noofiterations-ctr) * avg_time
-                                            ))
+                                                # Timing and checking
+                                                t2 = time.time()        
+                                                diff = t2-t1
+                                                ctr +=1
+                                                avg_time = diff / ctr
+                                                if ctr % (noofiterations / 100) == 0:
+                                                    tenpercent +=1
+                                                    print("Reached {} %, Avg time: {}, ETA: {}".format(
+                                                        tenpercent, avg_time, (noofiterations-ctr) * avg_time
+                                                    ))
