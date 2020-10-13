@@ -8,22 +8,22 @@ import time
 import matplotlib.pyplot as plt
 
 """
-    Order of the Dimensions of the Big Array:
-        1. dims = np.asarray([48, 64])
-        2. simcases = np.asarray([1, 2])
-        3. fov = np.asarray([1, 2, 3])
-        4. overh
-        5. overv = np.asarray([0.25, 0.5, 0.75, 1.0/3.0, 2.0/3.0])
-        6. acc = np.asarray([0.6, 0.7, 0.8, 0.9, 0.95])
-        7. probs = np.asarray([0, 1, 2])
+    Order of the Dimensions of the Big Array  - IN THIS ORDER!
+        0. dims = np.asarray([48, 64])
+        1. simcases = np.asarray([1, 2])
+        2. fov = np.asarray([1, 2, 3])
+        3. overh
+        4. overv = np.asarray([0.25, 0.5, 0.75, 1.0/3.0, 2.0/3.0])
+        5. acc = np.asarray([0.6, 0.7, 0.8, 0.9, 0.95])
+        6. probs = np.asarray([0, 1, 2])
 
         # Boolean options
-        8. trans = np.asarray([False, True])
-        9. rand = np.asarray([False, True])
-        -> Currently Unused: testconf = np.asarray([False, True])
+        7. trans = np.asarray([False, True])
+        8. rand = np.asarray([False, True])
+        9. testconf = np.asarray([False, True])
 
         10. Algorithms = Flat, Pred, Hier, Dyn
-        11. Metrics = Entropy, Count - IN THIS ORDER!
+        11. Metrics = Entropy, Count
 
 """
 
@@ -119,7 +119,7 @@ def readh5(fname):
     return datadict
 
 # Reproducing the Results
-def reproduceresults(configdict, datadict, entropy=True, visualise=True):
+def reproduceresults(configdict, datadict, casename, entropy=True, visualise=True):
     """
         Function to Plot the results for a single file 
     """
@@ -161,25 +161,18 @@ def reproduceresults(configdict, datadict, entropy=True, visualise=True):
             flat_e[i,j] = cross_entropy(gt, flatmap[i,j,:])
             hier_dyn_e[i,j] = cross_entropy(gt, postmap_dyn[i,j,:])
             hier_e[i,j] = cross_entropy(gt, postmap_hier[i,j,:])
-    
+
+    valsdict={}   
     if entropy:
-        e_dict = {}
-        e_dict["Flat"] = flat_e.flatten()
-        e_dict["Predicted"] = pred_e.flatten()
-        e_dict["Hierarchical Dynamic"] = hier_dyn_e.flatten()
-        e_dict["Hierarchical"] = hier_e.flatten()
-        for k,v in e_dict.items():
-            print("Entropy for {}: {}".format(k,v.sum()))
-        # plot_entropy(e_dict, configdict, casedict)
+        valsdict["Flat"] = flat_e.sum()
+        valsdict["Predicted"] = pred_e.sum()
+        valsdict["Hierarchical Dynamic"] = hier_dyn_e.sum()
+        valsdict["Hierarchical"] = hier_e.sum()
     else:
-        wcells = {}
-        wcells["Flat"] = wrongcells(gtmap, flatmap)
-        wcells["Predicted"] = wrongcells(gtmap, predmap)
-        wcells["Hierarchical"] = wrongcells(gtmap, postmap_hier)
-        wcells["Hierarchical Dynamic"] = wrongcells(gtmap, postmap_dyn)
-        for k, v in wcells.items():
-            print("{}: {}".format(k,v))
-        print("Maximum number of observations per cell: {}".format(maxobscells(countsmap)))
+        valsdict["Flat"] = wrongcells(gtmap, flatmap)
+        valsdict["Predicted"] = wrongcells(gtmap, predmap)
+        valsdict["Hierarchical"] = wrongcells(gtmap, postmap_hier)
+        valsdict["Hierarchical Dynamic"] = wrongcells(gtmap, postmap_dyn)
     if visualise:
         reprdict = {}
         reprdict["Ground Truth"] = vis_idx_map(gtmap, carr)
@@ -187,7 +180,10 @@ def reproduceresults(configdict, datadict, entropy=True, visualise=True):
         reprdict["Hierarchical"] = lookupColorFromPosterior(carr, postmap_hier)
         reprdict["Hierarchical Dynamic"] = lookupColorFromPosterior(carr, postmap_dyn)
         reprdict["Predicted"] = lookupColorFromPosterior(carr, predmap)
-        plot_reproduction(reprdict)
+        plot_reproduction(reprdict, valsdict, casename)
+    else:
+        for k, v in valsdict.items():
+            print("Values for: {} = {}".format(k,v))
     
 # Plotting Functions
 def plot_entropy(e_dict, configdict, settings):
@@ -258,7 +254,7 @@ def vis_idx_map(gtmap, carr):
     return outmap
 
 # Plotting the Reproduction
-def plot_reproduction(reprdict):
+def plot_reproduction(reprdict, valsdict, casename=None):
     """
         Function to plot the reproductions
     """
@@ -271,10 +267,16 @@ def plot_reproduction(reprdict):
         else:
             col = 1
         axes[row,col].imshow(v)
-        axes[row,col].set(title=k)
+        title = k
+        try:
+            title += " {}".format(valsdict[k])
+        except KeyError:
+            pass
+        axes[row,col].set(title=title)
+    plt.suptitle(casename)
     plt.show()
 
-# TODO: Function to plot a single specific case
+# Function to plot a single specific case
 def plotcase(casename, resultsdir):
     """
         Function that plots a specific case in the results directory
@@ -288,9 +290,8 @@ def plotcase(casename, resultsdir):
     except OSError:
         raise OSError("File or Folder does not exist. Check filename again: {}".format(casename))
     
-    reproduceresults(confdict, datadict)
+    reproduceresults(confdict, datadict, casename)
     print("Testline")
-
 
 
 # Functions for manipulating the output data
@@ -331,7 +332,7 @@ def collectalldata(outdir):
         if i % (alldirs/10) == 0:
             t2 = time.time() - t1
             tperit = t2 / (i+1)
-            print("Finished with {} % \of the {} cases. Took {} s, ETA: {}".format( i//alldirs, alldirs, tperit, (alldirs-i)*tperit))
+            print("Finished with {} % \of the {} cases. Took {} s, ETA: {}".format( (i/alldirs) * 10, alldirs, tperit, (alldirs-i)*tperit))
 
     return arr
 
@@ -434,6 +435,15 @@ def getcasesdict():
     cdict["Test"] = np.asarray([0, 1])
     return cdict
 
+# unnecessary - since each case has ALL algorithms and ALL metrics
+# def augmentcasesdict(cdict):
+#     """
+#         Function to augment the case dictionary with the Algorithms and the metrics
+#     """
+#     cdict["Algo"] = np.asarray([0, 1, 2, 3])
+#     cdict["Metric"] = np.asarray([0, 1])
+#     return cdict
+
 # For Manipulation of collected results
 def savebigarr(arr, outputdir):
     """
@@ -454,9 +464,10 @@ def readColResults(path, fname):
 
     return arr
 
-def getcasefromindex(ind, cases, algos, metrics):
+def getcasefromindex(ind, cases):
     """
-        Function to get the case from an index of the array 
+        Function to get the case from an index of the array
+        Does not care about algorithm or metric, since all of them are contained in a case
     """
     cdict = {}
     cdict["Dim"] = cases["Dim"][ind[0]]
@@ -465,12 +476,12 @@ def getcasefromindex(ind, cases, algos, metrics):
     cdict["HOver"] = cases["HOver"][ind[3]]
     cdict["VOver"] = cases["VOver"][ind[4]]
     cdict["Acc"] = cases["Acc"][ind[5]]
-    cdict["Transp"] = cases["Transp"][ind[6]]
-    cdict["Rand"] = cases["Rand"][ind[7]]
-    cdict["Ptu"] = cases["Ptu"][ind[8]]
-    # Algorithms and metrics are kept separate?
-    cdict["Algo"] = algos[ind[9]]
-    cdict["Metric"] = metrics[ind[10]]
+    cdict["Ptu"] = cases["Ptu"][ind[6]]
+    # Boolean Options
+    cdict["Transp"] = cases["Transp"][ind[7]]
+    cdict["Rand"] = cases["Rand"][ind[8]]
+    cdict["Test"] = cases["Test"][ind[9]]
+
     return cdict
 
 # Functions to evaluate the collected results - TODO: Continue here with formatting the indices correctly
@@ -567,8 +578,147 @@ def getAxisDict():
     a["Metric"] = 11
     return a
 
-# TODO: use axis argument with Numpy take:
 # https://numpy.org/doc/stable/reference/generated/numpy.take.html
+def usenumpytake(arr, axisdict, target_axis, target_case):
+    """
+        Function to use numpy take to index the value in the huge array.
+        Parameters:
+            * The array which to look at
+            * The lookup for the axes, which axes to return for target_axis
+            * The lookup for which case from that axis to take: the casesdict
+            * The target case 
+                CAREFUL: Target case has to be specified as the right integer to look for
+    """
+    ax = axisdict[target_axis]
+    subarr = np.take(arr, target_case, axis=ax)
+
+    # Good ways to find the indices:
+    ind = np.where(subarr == np.min(subarr[np.nonzero(subarr)]))
+    # Alternative Option:
+    # TODO: Turn the array into a np.nan array arr.fill(np.nan) OR: replace(0 with nan) and use:
+    # np.unravel_index(np.nanargmin(subarr), subarr.shape)
+
+    # TODO: Append the indices to the back here
+    if len(ind[0]) < 2:
+        nind = np.insert(ind, ax, target_case)
+    else:
+        tgt = np.full(len(ind[0]), target_case)
+        nind = np.asarray(ind).T
+        nind = np.insert(nind, ax, tgt, axis=1)
+    return nind
+
+def comparearray(arr):
+    """
+        Comparison of a subarray for one metric.
+    """
+    a_f = arr[...,0]
+    a_p = arr[...,1]
+    a_h = arr[...,2]
+    a_d = arr[...,3]
+
+    # Test: replace all 0 values in an array with nan
+    # a_f[a_f == 0 ] = np.nan
+    # a_p
+
+    diff_fp = comparetwoarrays(a_f, a_p)
+    diff_ah = comparetwoarrays(a_f, a_h)
+    diff_pd = comparetwoarrays(a_p, a_d)
+    pos_fp, neg_fp = getposnegcounts(diff_fp)
+    pos_hf, neg_hf = getposnegcounts(diff_ah)
+    pos_pd, neg_pd = getposnegcounts(diff_pd)
+    print("Done with the counts where condition is fulfilled.")
+
+    # Find a sample index where the condition is true
+    ind = np.argwhere(diff_pd > 0)
+
+    return ind
+
+def getposnegcounts(diff_arr):
+    """
+        Function to get the counts of positive and negative elements of an array of differences
+    """
+    pos = np.count_nonzero(diff_arr > 0)
+    neg = np.count_nonzero(diff_arr < 0)
+    return pos, neg
+
+def comparetwoarrays(a1, a2):
+    """
+        Function to subtract a2 from a1. a1 should be the bigger one (Higher value) then
+    """
+    return a1 - a2
+
+def getbigger(diff_arr):
+    """
+        Returns a list of indices where the input array is bigger than 0
+    """
+
+def getsmaller(diff_arr):
+    """
+        Returns a list of indices where the input array is smaller than 0
+    """
+    res = np.where(diff_arr > 0)
+    listofcoord = list(zip([r for r in res]))
+    return listofcoord
+
+def manipulatesubarray(ent, axisdict):
+    """
+        Manipulate the subarray with the appropriate subindexing
+    """
+    ax0 = axisdict["Ptu"]
+    ax0_ind = 0
+    ptu0 = np.take(ent, ax0_ind, axis=ax0)
+
+    ax1 = axisdict["Sim"]
+    ax1_ind = 1
+    ptu1 = np.take(ent, ax1_ind, axis=ax0)
+    if ax0 < ax1:
+        ax1 -= 1
+    ptu1sim1 = np.take(ptu1, ax1_ind, axis=ax1)
+
+    indices_ptu = comparearray(ptu0)
+    indices_ptusim1 = comparearray(ptu1sim1)
+
+    # Insert the index of what we took out back in
+    tgt = np.full(indices_ptu.shape[0], ax0_ind)
+    nind = np.insert(indices_ptu, ax0, tgt, axis=1)
+    
+    # If we took out multiple things, walk back up.
+    tgt1 = np.full(indices_ptusim1.shape[0], ax1_ind)
+    nnind = np.insert(indices_ptusim1, ax1, tgt1, axis=1)
+    nnnind = np.insert(nnind, ax0, tgt1, axis=1)
+
+
+    print("Testline")
+
+def manarr(e, axisdict, keytup, valtup):
+    """
+        Manipulate an array and do the operations on the key and value tuples
+    """
+    # l = np.asarray([axisdict[k] for k in keytup])
+    l = []
+    for k in keytup:
+        l.append(axisdict[k])
+    la = np.asarray(l)
+    las = np.sort(la, kind='stable')
+    lasf = np.flip(las)
+    
+    # Sort through the array and select the subarray we are looking for
+    a = e
+    for i, axind in enumerate(lasf):
+        a = np.take(a, valtup[i], axis=axind)
+    
+    # Do the actual operation on 
+    indices = comparearray(a)
+
+    # Recreate the indices - walking back up the list
+    nind = indices
+    for i, axind in enumerate(las):
+        tgt = np.full(indices.shape[0], valtup[i])
+        nind = np.insert(nind, axind, tgt, axis=1)
+
+    return nind
+
+
 
 if __name__=="__main__":
 
@@ -580,17 +730,57 @@ if __name__=="__main__":
     # Look in the 'tmp' directory
     parentDir = os.path.dirname(__file__)
     outputdir = os.path.abspath(os.path.join(parentDir, 'tmp', 'results'))
-    arr = collectalldata(outputdir)
+    # arr = collectalldata(outputdir)
     # savebigarr(arr, outputdir)
-    axisdict = getAxisDict()
     # Loading the big array of all the processed results
     arr = readColResults(outputdir, fname="CollResults.hdf5")
+
+    # Do the processing here:
+    axisdict = getAxisDict()
+
+    # Split by the two metrics that we have
+    entr = arr[...,0]
+    wrong = arr[...,1]
+
+    # ====================
+    # TODO: WHICH RESULTS DO I ACTUALLY WANT!!!!
+    # 1. The number of simulations where:
+    #  1.1 Hierarchical is better than Flat,
+    #  1.1.1. for Ptu = 0 - which is our predefined case
+    #  1.1.2. for Ptu = 1 AND all simcases == 2
+    # 2. The number of simulations where:
+    # 2.1. predicted is better than flat
+    # 2.2 Hierarchical Dynamic is better than predicted
+    # ===================
+    keytup = ("Ptu", "Sim")
+    valtup = (1, 1)
+    indicestrialrundonotusethisforanything = manarr(entr, axisdict, keytup, valtup)
+    somecasesdictionary = getcasefromindex(indicestrialrundonotusethisforanything[0], casesdict)
+    casenameforrandomthingy = createnamefromidxdict(somecasesdictionary)
+    plotcase(casenameforrandomthingy, outputdir)
+
+    manipulatesubarray(entr, axisdict)    
+    indices_e = comparearray(entr)
+    indices_w = comparearray(wrong)
+
+    # Pick a random index for both
+    rand_case_e = indices_e[np.random.randint(indices_e.shape[0])]
+    rand_case_w = indices_w[np.random.randint(indices_w.shape[0])]
+    rce_idxd = getcasefromindex(rand_case_e, casesdict)
+    rcw_idxd = getcasefromindex(rand_case_w, casesdict)
+    rce_cn = createnamefromidxdict(rce_idxd)
+    rcw_cn = createnamefromidxdict(rcw_idxd)
+    plotcase(rce_cn, outputdir)
+    plotcase(rcw_cn, outputdir)
+    # ===================================
+    # Old stuff
+    # idx1 = usenumpytake(arr, axisdict, target_axis="Metric", target_case=0)
     idx = findsmallest(arr, algos)
     
     # TODO: consider if cases where more than one return index comes out
     print(arr[idx])
-    #TODO: Continue here. The problem is, that the idxs do not come back in an acceptable format
-    idxdict = getcasefromindex(idx, casesdict, algos, metrics)
+    # print(arr[idx1])
+    idxdict = getcasefromindex(idx, casesdict)
     
     casename = createnamefromidxdict(idxdict)
     # Plot a single case
