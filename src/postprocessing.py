@@ -146,6 +146,8 @@ def reproduceresults(configdict, datadict, casename, entropy=True, visualise=Tru
     flat_e = np.copy(pred_e)
     hier_dyn_e = np.copy(pred_e)
     hier_e =  np.copy(pred_e)
+
+    max_obs = countsmap.max()
     
     # Recalculate the posterior
     for i in range(gtmap.shape[0]):
@@ -180,10 +182,11 @@ def reproduceresults(configdict, datadict, casename, entropy=True, visualise=Tru
         reprdict["Hierarchical"] = lookupColorFromPosterior(carr, postmap_hier)
         reprdict["Hierarchical Dynamic"] = lookupColorFromPosterior(carr, postmap_dyn)
         reprdict["Predicted"] = lookupColorFromPosterior(carr, predmap)
-        plot_reproduction(reprdict, valsdict, casename)
+        plot_reproduction(reprdict, valsdict, max_obs, casename)
     else:
         for k, v in valsdict.items():
             print("Values for: {} = {}".format(k,v))
+        print("Maximum number of observations per cell: {}".format(max_ob))
     
 # Plotting Functions
 def plot_entropy(e_dict, configdict, settings):
@@ -254,7 +257,7 @@ def vis_idx_map(gtmap, carr):
     return outmap
 
 # Plotting the Reproduction
-def plot_reproduction(reprdict, valsdict, casename=None):
+def plot_reproduction(reprdict, valsdict, max_obs, casename=None):
     """
         Function to plot the reproductions
     """
@@ -273,7 +276,7 @@ def plot_reproduction(reprdict, valsdict, casename=None):
         except KeyError:
             pass
         axes[row,col].set(title=title)
-    plt.suptitle(casename)
+    plt.suptitle(casename+" Max Obs: {}".format(max_obs))
     plt.show()
 
 # Function to plot a single specific case
@@ -660,35 +663,35 @@ def getsmaller(diff_arr):
     listofcoord = list(zip([r for r in res]))
     return listofcoord
 
-def manipulatesubarray(ent, axisdict):
-    """
-        Manipulate the subarray with the appropriate subindexing
-    """
-    ax0 = axisdict["Ptu"]
-    ax0_ind = 0
-    ptu0 = np.take(ent, ax0_ind, axis=ax0)
+# def manipulatesubarray(ent, axisdict):
+#     """
+#         Manipulate the subarray with the appropriate subindexing
+#     """
+#     ax0 = axisdict["Ptu"]
+#     ax0_ind = 0
+#     ptu0 = np.take(ent, ax0_ind, axis=ax0)
 
-    ax1 = axisdict["Sim"]
-    ax1_ind = 1
-    ptu1 = np.take(ent, ax1_ind, axis=ax0)
-    if ax0 < ax1:
-        ax1 -= 1
-    ptu1sim1 = np.take(ptu1, ax1_ind, axis=ax1)
+#     ax1 = axisdict["Sim"]
+#     ax1_ind = 1
+#     ptu1 = np.take(ent, ax1_ind, axis=ax0)
+#     if ax0 < ax1:
+#         ax1 -= 1
+#     ptu1sim1 = np.take(ptu1, ax1_ind, axis=ax1)
 
-    indices_ptu = comparearray(ptu0)
-    indices_ptusim1 = comparearray(ptu1sim1)
+#     indices_ptu = comparearray(ptu0)
+#     indices_ptusim1 = comparearray(ptu1sim1)
 
-    # Insert the index of what we took out back in
-    tgt = np.full(indices_ptu.shape[0], ax0_ind)
-    nind = np.insert(indices_ptu, ax0, tgt, axis=1)
+#     # Insert the index of what we took out back in
+#     tgt = np.full(indices_ptu.shape[0], ax0_ind)
+#     nind = np.insert(indices_ptu, ax0, tgt, axis=1)
     
-    # If we took out multiple things, walk back up.
-    tgt1 = np.full(indices_ptusim1.shape[0], ax1_ind)
-    nnind = np.insert(indices_ptusim1, ax1, tgt1, axis=1)
-    nnnind = np.insert(nnind, ax0, tgt1, axis=1)
+#     # If we took out multiple things, walk back up.
+#     tgt1 = np.full(indices_ptusim1.shape[0], ax1_ind)
+#     nnind = np.insert(indices_ptusim1, ax1, tgt1, axis=1)
+#     nnnind = np.insert(nnind, ax0, tgt1, axis=1)
 
 
-    print("Testline")
+#     print("Testline")
 
 def manarr(e, axisdict, keytup, valtup):
     """
@@ -696,24 +699,29 @@ def manarr(e, axisdict, keytup, valtup):
     """
     # l = np.asarray([axisdict[k] for k in keytup])
     l = []
-    for k in keytup:
-        l.append(axisdict[k])
+    ndict = {}
+    for i, k in enumerate(keytup):
+        v = axisdict[k]
+        l.append(v)
+        ndict[v] = valtup[i]
     la = np.asarray(l)
     las = np.sort(la, kind='stable')
     lasf = np.flip(las)
     
     # Sort through the array and select the subarray we are looking for
     a = e
-    for i, axind in enumerate(lasf):
-        a = np.take(a, valtup[i], axis=axind)
+    for axind in lasf:
+        validx = ndict[axind]
+        a = np.take(a, validx, axis=axind)
     
     # Do the actual operation on 
     indices = comparearray(a)
 
     # Recreate the indices - walking back up the list
     nind = indices
-    for i, axind in enumerate(las):
-        tgt = np.full(indices.shape[0], valtup[i])
+    for axind in las:
+        val = ndict[axind]
+        tgt = np.full(indices.shape[0], val)
         nind = np.insert(nind, axind, tgt, axis=1)
 
     return nind
@@ -752,14 +760,17 @@ if __name__=="__main__":
     # 2.1. predicted is better than flat
     # 2.2 Hierarchical Dynamic is better than predicted
     # ===================
-    keytup = ("Ptu", "Sim")
-    valtup = (1, 1)
+    keytup = ("Ptu", "Sim", "Acc", "Test", "Transp", "Dims")
+    valtup = (2, 0, 2, 0, 0, 1)
     indicestrialrundonotusethisforanything = manarr(entr, axisdict, keytup, valtup)
-    somecasesdictionary = getcasefromindex(indicestrialrundonotusethisforanything[0], casesdict)
-    casenameforrandomthingy = createnamefromidxdict(somecasesdictionary)
-    plotcase(casenameforrandomthingy, outputdir)
 
-    manipulatesubarray(entr, axisdict)    
+    for _ in range(min(5, indicestrialrundonotusethisforanything.shape[0])):
+        r = np.random.randint(indicestrialrundonotusethisforanything.shape[0])
+        somecasesdictionary = getcasefromindex(indicestrialrundonotusethisforanything[r], casesdict)
+        casenameforrandomthingy = createnamefromidxdict(somecasesdictionary)
+        plotcase(casenameforrandomthingy, outputdir)
+
+    # manipulatesubarray(entr, axisdict)    
     indices_e = comparearray(entr)
     indices_w = comparearray(wrong)
 
