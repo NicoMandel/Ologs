@@ -36,7 +36,7 @@ def save_results(args, datadict, configs):
     outputdir = os.path.abspath(os.path.join(parentDir, 'tmp', 'results'))
     
     # With this string formatting it can be split by _ and by -
-    outname = "Ptu-{}_Sim-{}_Dim-{}_Fov-{}_Acc-{}_HOver-{}_VOver-{}_Alpha-{}".format(
+    outname = "Ptu-{}_Sim-{}_Dim-{}_Fov-{}_Acc-{}_HOver-{}_VOver-{}_Alpha-{:.1f}".format(
          args.ptu, args.simcase, args.dim, args.fov, args.accuracy, 1-args.overlaph, 1-args.overlapv, args.alpha
     )
     outdir = os.path.abspath(os.path.join(outputdir, outname))

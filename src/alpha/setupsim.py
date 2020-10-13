@@ -69,7 +69,7 @@ def checkarguments(args, curr_cases=2):
     nstring = ""
     ar = vars(args)
     for k,v in ar.items():
-        nstring.append(insstring.format(k,v))
+        nstring+=insstring.format(k,v)
     print("All checks passed. Continuing for case: {}".format(nstring))
 
 # Set the observation likelihood
