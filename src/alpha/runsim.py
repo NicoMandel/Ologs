@@ -34,24 +34,10 @@ def save_results(args, datadict, configs):
     """
     parentDir = os.path.dirname(__file__)
     outputdir = os.path.abspath(os.path.join(parentDir, 'tmp', 'results'))
-
-    # Setting up the outputdirectory
-    if args.transposed:
-        transp = 1
-    else:
-        transp=0
-    if args.random:
-        rando = 1
-    else:
-        rando=0
-    if args.testconfig:
-        testconf = 1
-    else:
-        testconf=0
     
     # With this string formatting it can be split by _ and by -
-    outname = "Ptu-{}_Sim-{}_Dim-{}_Fov-{}_Acc-{}_HOver-{}_VOver-{}_Transp-{}_Rand-{}_Test-{}".format(
-         args.ptu, args.simcase, args.dim, args.fov, args.accuracy, 1-args.overlaph, 1-args.overlapv, transp, rando, testconf
+    outname = "Ptu-{}_Sim-{}_Dim-{}_Fov-{}_Acc-{}_HOver-{}_VOver-{}_Alpha-{}".format(
+         args.ptu, args.simcase, args.dim, args.fov, args.accuracy, 1-args.overlaph, 1-args.overlapv, args.alpha
     )
     outdir = os.path.abspath(os.path.join(outputdir, outname))
     try:
@@ -127,94 +113,6 @@ def scenario1(xmax, ymax, classlist, transpose=False):
     else:
         return gt
 
-def scenario2(xmax, ymax, classlist, random=False, roadwidth=2, carcount=4, h_size=3, h_counts=5, testconfig=False, proportion=0.5, transpose=False):
-    """
-
-    """
-    gt = np.zeros((xmax, ymax, classlist.size))
-    tree =      np.asarray([0, 0, 0, 1, 0])
-    vehicle =   np.asarray([0, 0, 0, 0, 1])
-    house =     np.asarray([1, 0, 0, 0, 0])
-    pavement =  np.asarray([0, 1, 0, 0, 0])
-    grass =     np.asarray([0, 0, 1, 0, 0])
-    
-    quatx = xmax // 4
-    quaty = ymax // 4
-    gt[...,:] = grass
-
-    # Choose random indices from the second half. Roughly 50%
-    if random:
-        areasize = int(2*proportion*quatx*ymax)
-        xidcs= np.random.randint(2*quatx,xmax,size=areasize)
-        yidcs = np.random.randint(ymax,size=areasize)
-        idcs = np.asarray((xidcs, yidcs)).T
-    else:    # Make the idcs nonrandom
-        xrang = np.arange(2*quatx,xmax,2)
-        yrang = np.arange(0,ymax,3)
-        idcs = np.array([np.array([x,y]) for x in xrang for y in yrang])
-        # yidcs = [y for y in yrang for x in xrang]
-    gt[idcs[:,0], idcs[:,1], :] = tree
-    
-    # 2 Roads
-    halfx = xmax //2
-    halfy = ymax //2
-    gt[:,halfx-roadwidth:halfx+roadwidth,:] = pavement
-    gt[halfy-roadwidth:halfy+roadwidth,:,:] = pavement
-    
-    # sets of cars
-    if random:
-        cars = np.random.randint(1,carcount+1)
-        caridx = np.random.randint(0,ymax-3,size=cars)
-        caridcs = [np.arange(idx, idx+3) for idx in caridx]
-        gt[halfx-roadwidth:halfx,caridcs,:] = vehicle
-
-        caridx = np.random.randint(0,ymax-3,size=carcount-cars)
-        caridcs = [np.arange(idx, idx+3) for idx in caridx]
-        gt[caridcs,halfx:halfx+roadwidth,:] = vehicle
-    else:
-        caridx = np.arange(0,xmax, 12)
-        caridcs = [np.arange(idx, idx+3) for idx in caridx]
-        gt[halfx-roadwidth:halfx,caridcs,:] = vehicle
-        gt[caridcs,halfx:halfx+roadwidth,:] = vehicle
-
-    # Houses:
-    # Top left indices
-    tlx = halfx - roadwidth - h_size
-    ty = halfy - roadwidth - h_size
-    trx = halfx + roadwidth + 1
-    
-    if random:
-        tlh_idx = np.random.randint(0, tlx-h_size, size=h_counts)
-        trh_idx = np.random.randint(trx, xmax-h_size, size=h_counts)
-        tly_idx = np.random.randint(0, ty-h_size, size=h_counts)
-        try_idx = np.random.randint(0, ty-h_size, size=h_counts)
-        y_idcs = np.concatenate((tly_idx, try_idx), axis=None)
-        x_idcs = np.concatenate((tlh_idx, trh_idx), axis=None)
-        h_yidcs = np.array([np.arange(y,y+h_size) for y in y_idcs])
-        h_xidcs = np.array([np.arange(x, x+h_size) for x in x_idcs])
-        pts = []
-        h_idx = np.array([np.array([x,y]) for i, x_arr in enumerate(h_xidcs) for x in x_arr for y in h_yidcs[i]])
-
-    else:
-        tlh_idx = np.arange(0, tlx, (h_size+2)*2)
-        trh_idx = np.arange(trx, xmax-h_size, (h_size+2)*2)
-        tly_idx = np.arange(0, ty-h_size, (h_size+2)*2)
-        x_idcs = np.concatenate((tlh_idx, trh_idx), axis=None)
-        tlx_idcs = [np.arange(idx, idx+h_size) for idx in x_idcs]
-        tly_idcs = [np.arange(idx, idx+h_size) for idx in tly_idx]
-        h_idx = np.array([np.array([x, y]) for x_coord in tlx_idcs for x in x_coord for y_coord in tly_idcs for y in y_coord])
-    
-    # Switching around the cases
-    if testconfig:
-        gt[h_idx[:,0], h_idx[:,1], :] = house
-    else:
-        gt[h_idx[:,1],h_idx[:,0],:] = house
-    
-    if transpose:
-        return np.swapaxes(gt,0,1)
-    else:
-        return gt
-    return gt
     
 def get_map_counts(map1):
     """
@@ -423,36 +321,6 @@ def dynamic_prediction(cts, ptu, prior_u, classlist):
 
     return class_probab
 
-def recreate_posterior(prior, counts, obs_prob):
-    """
-        Function to recreate the posterior, with the prior and the number of observations of the classes
-        as well as the observation probabilities
-    """
-    post = prior
-    for i in range(counts.size):
-        ct = counts[i].astype(np.int)
-        for j in range(ct):
-            vec = obs_prob[i]
-            post = vec*post
-            post = post / post.sum()
-    return post
-
-# Evaluation
-def cross_entropy(vec_true, vec_pred):
-    """
-        cross entropy loss for a single element. Following the definition of:
-        https://youtu.be/ErfnhcEV1O8?t=579
-    """
-    return np.sum(vec_true*np.log(vec_pred)) * (-1.0)
-
-def wrongcells(gtmap, predicted):
-    """
-        Function to return the Relative percentage of wrongly predicted cells
-    """
-    pred_idxmax = np.asarray(np.unravel_index(np.argmax(predicted, axis=2), predicted.shape))[2]
-    gt_idxmax = np.asarray(np.unravel_index(np.argmax(gtmap, axis=2), gtmap.shape))[2]
-    diff = pred_idxmax - gt_idxmax
-    return np.count_nonzero(diff) / (gtmap.shape[0] * gtmap.shape[1])    
 
 # Actually running the simulation
 def runsimulation(args, pu, ptu, obs_prob, arealist, classlist):
@@ -469,18 +337,13 @@ def runsimulation(args, pu, ptu, obs_prob, arealist, classlist):
     overlap = (h_overlap, v_overlap)
     likelihood = args.accuracy
     simcase = args.simcase
-    transposed = args.transposed
-    rand = args.random
-    testconfig = args.testconfig
+    alpha = args.alpha
     
     # Ground Truth map
-    try:
-        if simcase == 1:
-            gtmap = scenario1(max_map_size, max_map_size, classlist, transpose=transposed)
-        elif simcase == 2:
-            gtmap = scenario2(max_map_size, max_map_size, classlist, transpose=transposed, random=rand, testconfig=testconfig)
-    except OSError:
-        raise OSError("Error in creating the simulation map")
+    if simcase == 1:
+        gtmap = scenario1(max_map_size, max_map_size, classlist)
+    else:
+        raise ValueError("Wrong Sim Case specified")
 
     real_distribution = get_map_counts(gtmap)
     pred_classes_hierar = pu @ ptu
@@ -535,7 +398,7 @@ def runsimulation(args, pu, ptu, obs_prob, arealist, classlist):
         # Predict the next step
         xmin_pred, xmax_pred, ymin_pred, ymax_pred = retrieveVisibleFields(wps[i+1], fov=fov)
         fustates = predmap[xmin_pred:xmax_pred, ymin_pred:ymax_pred]
-        nst_pred = pred_flat(fustates)
+        nst_pred = pred_flat(fustates, alpha=alpha)
         # Hierarchical prediction:
         dyn_pr = hiermap_dyn[xmin_pred:xmax_pred, ymin_pred:ymax_pred, :]
         cts_fut = countsmap[xmin_pred:xmax_pred, ymin_pred:ymax_pred, :]

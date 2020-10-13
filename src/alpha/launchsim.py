@@ -27,7 +27,7 @@ if __name__=="__main__":
     basepath = os.path.abspath(os.path.dirname(__file__))
     fname = "setupsim.py"
     filetorun = os.path.join(basepath, fname)
-    basestr = "python3 {} -d {} -f {} -a {} -s {} -p {} --overlaph {} --overlapv {}"
+    basestr = "python3 {} -d {} -f {} -a {} -s {} -p {} --overlaph {} --overlapv {} --alpha {}"
     
     # All the available options
     dims = [64]
@@ -37,25 +37,10 @@ if __name__=="__main__":
     acc = [0.8, 0.9]
     probs = [0, 1, 2]
 
-    # The boolean options
-    trans = [False, True]
-
-
-    # Reduced Options:
-    # dims = [48]
-    # simcases = [2]
-    # fov = [2]
-    # overh = overv = [0.5]
-    # acc = [0.8]
-    # probs = [0]
-    # rand = [True, False]
-    # trans= [True]
-    # testconf = [True, False]
-
+    # The different alphas
+    alpha = np.linspace(0, 1, num=6)
     # The setup
-    noofiterations = len(dims) * len(simcases) * len(fov) * len(overh) * len(overv) * len(acc) * len(probs) *\
-                    len(trans)
-    # noofiterations = len(dims) * len(simcases) * len(fov) * len(overh) * len(overv) * len(probs) * len(acc)
+    noofiterations = len(dims) * len(simcases) * len(fov) * len(overh) * len(overv) * len(acc) * len(probs) * len(alpha)
     print("Running a total of {} simulations".format(noofiterations))
     
     t1 = time.time()
@@ -64,47 +49,34 @@ if __name__=="__main__":
     # Launch all the options, maintain the order!
     for dim in dims:
         for f in fov:
-            for a in acc:
+            for ac in acc:
                 for sim in simcases:
                     for prob in probs:
                         for oh in overh:
                             for ov in overv:
-                                # Boolean options
-                                for tr in trans:
-                                    for ra in rand:
-                                        for tc in testconf:
-                                            # Creating the string
-                                            launchstring = basestr.format(
-                                                filetorun, dim, f, a, sim, prob, oh, ov
-                                            )
-                                            # use boolean option
-                                            if tr:
-                                                launchstring += " -t"
-                                            if ra:
-                                                launchstring += " -r"
-                                            if tc:
-                                                launchstring += " -c"
-                                            # The actual launching of the process
-                                            try:
-                                                subprocess.run(launchstring, shell=True)
-                                                # print("Launched Simulation {} Successfully!".format(
-                                                #     launchstring
-                                                # ))
-                                            except Exception as e:
-                                                print("Simulation Failed for case: {}".format(
-                                                    launchstring    
-                                                ))
-                                                print("Exception Type: {}, File: {}, Line: {}".format(
-                                                    sys.exc_info()[0], os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1], sys.exc_info()[2].tb_lineno
-                                                    ))
+                                for a in alpha:
+                                    # Creating the string
+                                    launchstring = basestr.format(
+                                        filetorun, dim, f, ac, sim, prob, oh, ov, a
+                                    )
+                                    # The actual launching of the process
+                                    try:
+                                        subprocess.run(launchstring, shell=True)
+                                    except Exception as e:
+                                        print("Simulation Failed for case: {}".format(
+                                            launchstring    
+                                        ))
+                                        print("Exception Type: {}, File: {}, Line: {}".format(
+                                            sys.exc_info()[0], os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1], sys.exc_info()[2].tb_lineno
+                                            ))
 
-                                            # Timing and checking
-                                            t2 = time.time()        
-                                            diff = t2-t1
-                                            ctr +=1
-                                            avg_time = diff / ctr
-                                            if ctr % (noofiterations / 100) == 0:
-                                                tenpercent +=1
-                                                print("Reached {} %, Avg time: {}, ETA: {}".format(
-                                                    tenpercent, avg_time, (noofiterations-ctr) * avg_time
-                                                ))
+                                        # Timing and checking
+                                        t2 = time.time()        
+                                        diff = t2-t1
+                                        ctr +=1
+                                        avg_time = diff / ctr
+                                        if ctr % (noofiterations / 100) == 0:
+                                            tenpercent +=1
+                                            print("Reached {} %, Avg time: {}, ETA: {}".format(
+                                                tenpercent, avg_time, (noofiterations-ctr) * avg_time
+                                            ))

@@ -20,11 +20,12 @@ def parse_args():
     parser.add_argument("--overlaph", default=0.5, help="Horizontal desired overlap. Default is 0.5", type=float)
     parser.add_argument("--overlapv", default=0.5, help="Vertical desired overlap. Default is 0.5", type=float)
     parser.add_argument("-a", "--accuracy", default=0.8, help="Detection accuracy. Default is 0.8", type=float)
-    parser.add_argument("-t", "--transposed", default=False, help="Whether the map should be transposed. Default is false", action="store_true")
+    # parser.add_argument("-t", "--transposed", default=False, help="Whether the map should be transposed. Default is false", action="store_true")
     parser.add_argument("-s", "--simcase", default=1, help="Which simulation case to run. Default is 1", type=int)
-    parser.add_argument("-r", "--random", default=False, action="store_true", help="Whether object locations should be randomly generated or not. Only affects simulation case 2")
-    parser.add_argument("-c", "--testconfig", default=False, action="store_true", help="Whether the convoluted case of overlapping areas should be used")
+    # parser.add_argument("-r", "--random", default=False, action="store_true", help="Whether object locations should be randomly generated or not. Only affects simulation case 2")
+    # parser.add_argument("-c", "--testconfig", default=False, action="store_true", help="Whether the convoluted case of overlapping areas should be used")
     parser.add_argument("-p", "--ptu", default=0, type=int, help="Which Ptu to take. If 0: choose predefined set. If 1: Choose Dynamic, if 2: Choose biggest difference")
+    parser.add_argument("--alpha", type=float, default=0.5, help="The mixing parameter for the area weight")
     args = parser.parse_args()
     return args
 
@@ -54,14 +55,6 @@ def checkarguments(args, curr_cases=2):
             raise ValueError("Error: Overlap {} Not a multiple of: {}".format(
                 over, (1.0 / (2*fov))
             ))
-    # Check on the Sim Cases
-    if args.simcase > curr_cases:
-        raise ValueError("Sim Cases invalid. Only {} cases currently exist".format(curr_cases))
-    
-    # Check if random is true if it is simcase 2
-    if args.random:
-        if not(args.simcase == 2):
-            print("Random Flag set, but not case 2 selected. Irrelevant parameter ignored")
 
     # Check if the -p flag is smaller than 3
     if args.ptu > 2:
@@ -71,16 +64,13 @@ def checkarguments(args, curr_cases=2):
     if args.dim % 4 != 0:
         raise ValueError("Dimension {} not divisble by 4".format(args.dim))
 
-    if (args.testconfig and args.simcase == 1):
-        print("Testconfig used with simulation case 1. Irrelevant parameter ignored")
-        
     # If everything is fine, continue:
-    print("All checks passed. Continuing with case:")
+    insstring ="{}: {} "
+    nstring = ""
     ar = vars(args)
     for k,v in ar.items():
-        print("{}: {}".format(
-            k,v
-        ))
+        nstring.append(insstring.format(k,v))
+    print("All checks passed. Continuing for case: {}".format(nstring))
 
 # Set the observation likelihood
 def observation_probabilities(num_classes, maxim=0.8):
