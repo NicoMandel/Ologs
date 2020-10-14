@@ -6,6 +6,9 @@ import pandas as pd
 import os
 import time
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+from copy import deepcopy
+import seaborn as sns
 
 """
     Order of the Dimensions of the Big Array  - IN THIS ORDER!
@@ -186,7 +189,7 @@ def reproduceresults(configdict, datadict, casename, entropy=True, visualise=Tru
     else:
         for k, v in valsdict.items():
             print("Values for: {} = {}".format(k,v))
-        print("Maximum number of observations per cell: {}".format(max_ob))
+        print("Maximum number of observations per cell: {}".format(max_obs))
     
 # Plotting Functions
 def plot_entropy(e_dict, configdict, settings):
@@ -567,7 +570,7 @@ def getAxisDict():
         TODO: Check what position "Test" gets read into!
     """
     a = {}
-    a["Dims"] = 0
+    a["Dim"] = 0
     a["Sim"] = 1
     a["Fov"] = 2
     a["HOver"] = 3
@@ -629,12 +632,44 @@ def comparearray(arr):
     pos_fp, neg_fp = getposnegcounts(diff_fp)
     pos_hf, neg_hf = getposnegcounts(diff_ah)
     pos_pd, neg_pd = getposnegcounts(diff_pd)
-    print("Done with the counts where condition is fulfilled.")
+    # print("Done with the counts where condition is fulfilled.")
 
     # Find a sample index where the condition is true
     ind = np.argwhere(diff_pd > 0)
 
     return ind
+
+def getcounts(arr, axes=(0,1)):
+    """
+        Function similar to comparearray, but instead of returning an index, this returns:
+            Params:
+            * Axes to compare. Values:
+            * 0 - Flat
+                * 1 - Predicted
+                * 2 - Hierarchical
+                * 3 - Dynamic Hierarchical
+    """
+    a1 = arr[...,axes[0]]
+    a2 = arr[...,axes[1]]
+
+    diff_arr = comparetwoarrays(a1, a2)
+    pos, neg = getposnegcounts(diff_arr)
+    return pos, neg
+
+def getrelative(arr, axes=(0,1)):
+    """  
+        Function again similar to comparearray, but instead of returning an index, this returns:
+        A relative percentage.
+        Calls getcounts()
+        axes:   0 - flat
+                1- predicted
+                2 - hierarchical
+                3 - dynamic hierarchical
+    """
+    pos, neg = getcounts(arr, axes=axes)
+    # return the percentage of cases where pos is better
+    rel = pos / (pos+neg)
+    return rel
 
 def getposnegcounts(diff_arr):
     """
@@ -690,8 +725,36 @@ def getsmaller(diff_arr):
 #     nnind = np.insert(indices_ptusim1, ax1, tgt1, axis=1)
 #     nnnind = np.insert(nnind, ax0, tgt1, axis=1)
 
+def getrelcountsforcase(arr, axisdict, keytup, valtup, axes=(0,1)):
+    """
+        For a specific case defined by keytup, valtup, get the relative counts.
+        Similar structure to manarr
+        Calling getrel() instead of indices.
+        axes=() defines which two axes should be subtracted from one another
+            0 is flat
+            1 is pred
+            2 is hier
+            3 is dyn
+    """
+    l = []
+    ndict = {}
+    for i,k in enumerate(keytup):
+        v = axisdict[k]
+        l.append(v)
+        ndict[v] = valtup[i]
+    la = np.asarray(l)
+    las = np.sort(la, kind='stable')
+    lasf = np.flip(las)
+    
+    # Sorting through the array and selecting the subarray we are looking for
+    a = arr
+    for axind in lasf:
+        validx = ndict[axind]
+        a = np.take(a, validx, axis=axind)
+    
+    perc = getrelative(a, axes=axes)
+    return perc
 
-#     print("Testline")
 
 def manarr(e, axisdict, keytup, valtup):
     """
@@ -725,6 +788,122 @@ def manarr(e, axisdict, keytup, valtup):
         nind = np.insert(nind, axind, tgt, axis=1)
 
     return nind
+
+def testindices(keytup, valtup, arr, axisdict, casesdict, outputdir):
+    """
+        Function to test the indices
+    """
+    indicestrialrundonotusethisforanything = manarr(arr, axisdict, keytup, valtup)
+
+    for _ in range(min(5, indicestrialrundonotusethisforanything.shape[0])):
+        r = np.random.randint(indicestrialrundonotusethisforanything.shape[0])
+        somecasesdictionary = getcasefromindex(indicestrialrundonotusethisforanything[r], casesdict)
+        casenameforrandomthingy = createnamefromidxdict(somecasesdictionary)
+        plotcase(casenameforrandomthingy, outputdir)
+
+def collectedEval(arr, axisdict, casesdict):
+    """
+        Function to run a collection of evaluations on array.
+        Only for Simulation case 2
+    """
+    axes = (1,3)    # to compare predicted with dynamic
+    # Simulation case 1 is kept static
+    cdict = deepcopy(casesdict)
+    del cdict["Sim"]
+    outerdict = {}
+    for k, vals in cdict.items():
+        innerdict = {}
+        for v in vals:       
+            keytup = tuple(["Sim", k])
+            iddx = np.where(vals == v)[0][0]
+            valtup = tuple([1, iddx])
+            try:
+                perc = getrelcountsforcase(arr, axisdict, keytup, valtup, axes=axes)
+                innerdict[v] = perc
+            except ZeroDivisionError:
+                pass
+        outerdict[k] = innerdict
+    return outerdict
+    # print("Testline")
+
+def barplotdict(coldict):
+    """
+        Function to plot the collected dictionary.
+    """
+    reform = {(outerKey, innerKey): values for outerKey, innerDict in coldict.items() for innerKey, values in innerDict.items()}
+    # df = pd.DataFrame.from_dict(coldict)
+    mi = pd.MultiIndex.from_tuples(reform.keys(), names=('Parameter', 'Value'))
+    df = pd.DataFrame(reform.values(), index=mi, columns=["Ratio"])
+    df2 = df.reset_index()
+    print(df2.head())
+    testbarplot(df, coldict)
+    print("Testline")
+
+def testbarplot2(df, coldict):
+    # Trial 5:
+    # sns.set_theme(style="whitegrid")
+    # df["Value"] = df["Value"].astype(dtype=)
+    g = sns.catplot(
+        data=df, kind="bar", x="Parameter", y="Ratio", hue="Value"
+    )
+    g.despine(left=True)
+    g.set_axis_labels("Relative Counts", "Parameters")
+    # g.legend.set_title("")
+    plt.show()
+
+
+def testbarplot(df, coldict):
+    """
+        Function to test the plotting of a pandas df
+    """
+    # Trial 1:
+    # sns.catplot(x=df["Value"], col=df["Parameter"], data=df["Ratio"])
+    
+    # Trial2:
+    # data = df.set_index(["Parameter", "Value"])
+    # data.unstack().plot(kind= "bar", rot=90)
+    
+    # Trial3:
+    # fig,ax = plt.subplots()
+    # y_pos = np.arange(df.shape[0])
+    # ax.barh(y_pos, df["Ratio"], align='center')
+    alph = 0.85
+    c1 = (0.1, 0.1, 0.1, alph)
+    c2 = (0.662, 0.674, 0.647, alph)
+    c3 = (0.384, 0.976, 0.411, alph)
+    c4 = (235/255, 103/255, 52/255, alph)
+    c5 = (0.172, 0.533, 0.866, alph)
+    c = [c5, c4, c3, c2, c1]
+    # Trial4:
+    # TODO: Adapt the names that are 0, 1 - find better way!
+    def adaptdictnames():
+        return tuple([False, True])
+
+    # cols = ["blue", "black", "green", "red", "cyan"]
+    cm = plt.get_cmap('winter')
+    fig, axs = plt.subplots(len(coldict.keys()), sharex=True)
+    for i, k in enumerate(coldict.keys()):
+        subdf = df.loc[k]
+        y_pos = np.arange(subdf.shape[0])
+        axs[i].barh(y_pos, subdf["Ratio"], align='center', color=c)
+        axs[i].set_yticks(y_pos)
+
+        axs[i].set_yticklabels(coldict[k], fontsize=14)
+        axs[i].invert_yaxis()       # labels read top to bottom - says matplotlib
+        if i < len(coldict.keys()) - 1:
+            axs[i].get_xaxis().set_visible(False)
+            axs[i].spines["bottom"].set_visible(False)
+        else:
+            axs[i].tick_params(axis="x", labelsize=14)
+            # axs[i].tick_params(axis='x', fontsize=14)
+            # pass
+        axs[i].set_ylabel(k, rotation='horizontal', va="center", ha="right", fontsize=20)
+
+        r = axs[i].spines["right"].set_visible(False)
+        t = axs[i].spines["top"].set_visible(False)
+        axs[i].axvline(0.5, ls='--', color='k', linewidth=4)
+    # plt.axvline(0.5, ls='--')    
+    plt.show()
 
 
 
@@ -765,16 +944,16 @@ if __name__=="__main__":
     # 2. The number of simulations where:
     # 2.1. predicted is better than flat
     # 2.2 Hierarchical Dynamic is better than predicted
-    # ===================
-    keytup = ("Ptu", "Sim", "Acc", "Test", "Transp", "Dims")
+    # # ===================
+    keytup = ("Ptu", "Sim", "Acc", "Test", "Transp", "Dim")
     valtup = (2, 0, 2, 0, 0, 1)
-    indicestrialrundonotusethisforanything = manarr(entr, axisdict, keytup, valtup)
 
-    for _ in range(min(5, indicestrialrundonotusethisforanything.shape[0])):
-        r = np.random.randint(indicestrialrundonotusethisforanything.shape[0])
-        somecasesdictionary = getcasefromindex(indicestrialrundonotusethisforanything[r], casesdict)
-        casenameforrandomthingy = createnamefromidxdict(somecasesdictionary)
-        plotcase(casenameforrandomthingy, outputdir)
+    # TODO: This is the actual target 
+    coldict = collectedEval(entr, axisdict, casesdict)
+    barplotdict(coldict)
+
+    testindices(keytup, valtup, entr, axisdict, casesdict, outputdir)
+    
 
     # manipulatesubarray(entr, axisdict)    
     indices_e = comparearray(entr)
