@@ -102,18 +102,11 @@ Numerical simulations are conducted to uncover influences of parameters of the m
     p(x\mid z) = \frac{p(z\mid x) p(x)}{p(z)}
 \end{equation}
 which is equivalent to the performance of any given detector~\cite{alom_history_2018}.
-The UAV is following a conventional lawnmower pattern, where the stride in both dimensions is defined through a desired overlap $o$ and field of view $f$~\cite{shetty_implementation_2020}. Figure~\ref{fig:Sim} shows a snapshot of the simulation at time $t=47$.
-\begin{figure}
-    \centering
-    \includegraphics[width=3.25in]{47.png}\\
-    \caption{\bf{A snapshot at iteration $47$ of the simulation. The UAV, marked by the black x, currently observes all the red cells, which symbolise the field of view. The green cells have been observed in the past. The blue cells have not been observed previously and the prior $p(x_{t=0})$ is updated according to the posterior of the already observed cells within the field-of-view.}}
-    \label{fig:Sim}
-\end{figure}
-Four algorithms are compared in parallel with the same sampled observations for each simulation case. In all cases, only the prior $p(x_{t=0})$ for each cell is adapted and all following observations are incorporated according to equation~\ref{eq:Bayes}. In the baseline case, the prior for each cell $p(x)$ is uniform over all classes $K$. In the other three cases, some form of spatial correlation is incorporated into the prior. The prediction for the cells is made by extracting the next waypoint $t_{+1}$ and evaluating all cells that will be visible within the field-of-view $f$ at that timestep. In the second simulation, yet unobserved cells will receive a prior which is a linear combination of the uniform prior and the posterior of the already observed cells. It is weighted by a mixing parameter $\alpha \in [0, 1]$, as well as the ratio of number of observed cells divided by total cells.\\
+The UAV is following a conventional lawnmower pattern, where the stride in both dimensions is defined through a desired overlap $o$ and field of view $f$~\cite{shetty_implementation_2020}. Figure~\ref{fig:SimCase} shows a snapshot of the simulation at time $t=47$.
+Four algorithms are compared in parallel with the same sampled observations for each simulation case. In all cases, only the prior $p(x_{t=0})$ for each cell is adapted and all following observations are incorporated according to equation~\ref{eq:Bayes}. In the baseline case, the prior for each cell $p(x)$ is uniform over all classes $K$. In the other three cases, some form of spatial correlation is incorporated into the prior. The prediction for the cells is made by extracting the next waypoint $t_{+1}$ and evaluating all cells that will be visible within the field-of-view $f$ at that timestep. In the second simulation, yet unobserved cells will receive a prior which is a linear combination of the uniform prior and the posterior of the already observed cells. It is weighted by a mixing parameter $\alpha \in [0, 1]$, as well as the ratio of number of observed cells divided by total cells \todo{Insert a name here}.\\
 In the other two algorithms, the prior is calculated according to an assumed distribution of ''areas'' -- $u$ -- groupings of cells. These groupings require definition of $p(x\mid u)$ and $p(u)$, as well as the number of groupings, usually smaller than $K$, analogous to topic modelling~\cite{blei_latent_2003}. In the first case, each map cell gets a prior $p(x_{t=0}) = p(x\mid u)p(u)$. In the second case, an algorithm is proposed where $p(u)$ is updated dynamically by using the observations of each cell within $f$, with a fixed $p(x\mid u)$, which leads to a new dynamically assigned $p(x)$.\\
 Three variations of $p(u)$ and $p(x\mid u)$ are considered. The first is a hand-defined version, where the mixture of ''objects'' in ''areas'' $p(x\mid u)$ is estimated by the user and the distribution of ''areas'' $p(u)$ in the map as well. In the second and third version, $p(x\mid u)$ and $p(u)$ are derived through Monte-Carlo simulations described in section~\ref{ssec:MetMC}. For the simulations $K=5$ and $3$ are used, because the reduced number allow for numerical stability, interpretability and visual simplicity when defining and evaluating simulation cases. Figure~\todo{Show image of the simulation here.} shows the two simulation environments.
-% How to save a subplot in matplotlib: https://stackoverflow.com/questions/4325733/save-a-subplot-in-matplotlib
-The simulation cases can be transposed, to evaluate the influence of the path planning direction on the predictive performance. The second simulation environment has further parameters, that randomize the placement of objects in quadrants, as well as a parameter that mixes two quadrants to illustrate visual diversity and reduce uniformity of areas. The simulation cases are displayed in figure~\todo{Show all ground truth cases for random, testconfig and transposed here.} Table~\ref{tab:params} shows the parameters that have been varied 
+The simulation cases can be transposed, to evaluate the influence of the path planning direction on the predictive performance. The second simulation environment has further parameters, that randomize the placement of objects in quadrants, as well as a parameter that mixes two quadrants to illustrate visual diversity and reduce uniformity of areas. The simulation cases are displayed in figure~\ref{fig:SimCase} Table~\ref{tab:params} shows the parameters that have been varied 
 \begin{table}[]
     \renewcommand{\arraystretch}{1.3}
     \caption{\bf Parameter variations for the simulations}
@@ -125,9 +118,9 @@ The simulation cases can be transposed, to evaluate the influence of the path pl
         \hline \hline
         Map Dimensions & $M$ & $48, 64$\\
         \hline
-        Field of View  & $f$              & $1, 2, 3$ \\
+        Field of View  & $f$              & $1, 2$ \\
         \hline
-        Overlap     & $o$              & $0.25, 0.5, 0.75, 0.33, 0.66$         \\
+        Overlap     & $o$              & $0.25, 0.5, 0.75$         \\
         \hline
         Accuracy & $p(z\mid x)$              & $0.6, 0.7, 0.8, 0.9, 0.95$        \\
         \hline
@@ -137,9 +130,43 @@ The simulation cases can be transposed, to evaluate the influence of the path pl
         \hline
         Transpose & $t$ & False, True \\
         \hline
+        Test & $c$ & False, True \\
+        \hline
     \end{tabular}
 \end{table}
-Some simulation cases are not feasible, such as a $f$ of $2$ and a $o$ of $0.33$ and therefore discarded during evaluation. Alpha is evaluated in a second run of experiments, where $\alpha \in [0, 0.2, ..., 1]$ and therefore not included in the table.
+Alpha is evaluated in a second run of experiments, where $\alpha \in [0, 0.2, ..., 1]$ and therefore not included in the table. 
+\begin{figure*}
+    \centering
+    \resizebox{\textwidth}{!}{
+    \includegraphics[width=4in]{SimComp10.png}}
+    \caption{\bf{
+        Example of the different test configurations. Colors represent different semantic classes. The top left corner shows the first simulation environment, the bottom left corner an example path. The top centre shows the second environment, the top right a transposed configuration, bottom centre a randomised configuration and bottom right a test configuration, which includes a partial tranpose.
+    }}
+    \label{fig:SimCase}
+\end{figure*}
+Figure~\ref{fig:SimCase} shows the basic variations for the simulation environments. The top left is the first environment, which is also used for the Monte-Carlo simulations detailed in section~\ref{ssec:MetMC} and excluded from the evaluation. The top centre shows the second environment, with the top right a transposed environment. The bottom left shows an example path, with the green colour indicating the already explored areas, the red the already seen fields and the blue the yet unexplored fields, which are predicted. The bottom centre shows a case where the placement of objects within their quadrants is randomised. The bottom right shows a testcase with partial transpose, which convolutes the definition of an ''area'' as a section identifiable by its composition of objects. The colours are indicators of types of classes and can be interpreted as shown in table~\ref{tab:colors}, however, are not limited to the named classes.
+\begin{table}[]
+    \renewcommand{\arraystretch}{1.3}
+    \caption{\bf Color indicators}
+    \label{tab:colors}
+    \centering
+    \begin{tabular}{|r||l|}
+        \hline
+        \bfseries Color      & \bfseries Class Name    \\
+        \hline \hline
+        Red &  House\\
+        \hline
+        Gray  & Road         \\
+        \hline
+        Light Green     & Grass              \\
+        \hline
+        Dark Green & Tree           \\
+        \hline
+        Blue & Vehicle \\
+        \hline
+    \end{tabular}
+\end{table}
+
 \subsubsection{Monte-Carlo simulations} \label{ssec:MetMC}
 $1000$ simulations with fixed $o=0.5$, $f=2$ and
 \begin{equation}
@@ -161,7 +188,8 @@ To evaluate the reproduction quality of the posterior map for each individual st
     H_{i,j} = - \sum_{k} p_{i,j,k}~ln(q_{i,j,k})
 \end{equation}
 is used. $p_i$ represents the true state and $q_i$ the estimated map state. Furthermore, the number of wrongly predicted cells is calculated as a secondary indicator.
-The log-likelihoods for the individual cases are subtracted from another and the count of the positive and negative samples indicate the quality of the reproduction for the different simulation cases. Only the cases for 
+The log-likelihoods for the individual cases are subtracted from another and the count of the positive and negative samples indicate the relative quality of the reproduction for the different simulation environment. If the count is below $50$\%, the proposed solution performs worse. The metric is chosen as a robust indicator, which is not affected by large variances in individual cases. 
+Only the second simulation case is included in the evaluation, since the first simulation environment was used to generate the updated probability vectors.
 \section{Results} \label{sec:Res}
 \subsection{Literature Overview} \label{ssec:ResLit}
 \todo{Put figure here with the literature}
@@ -172,7 +200,6 @@ The semantic information in robotics is included on various levels, especially i
     \item Object
 \end{enumerate}
 Semantics, as study of signs, has far-reaching roots in language. Computer scientists working with language have put large efforts into attempting to model spoken and written language. Spoken language has employed Hierarchical models of language to separate spoken words (through HHMMs). Natural Language processing has looked deep and hard into classifying collections of words into topics and documents (which are considered mixtures of topics) for classification and proposition.
-example of successful application are Fei-Fei-Lis LDA Application, and the other ones for the scenes and images. And the one with the satellite images. Maybe we can use these to turn into sophisticated models?
 What we are currently missing from these are the reliable amounts of ground-truth data.
 In speech applications: Various forms of Hierarchical Hidden Markov Models, mostly elucidated by Kevin Murphy~\todo{Cite his PhD Thesis here}
 \subsubsection{Historic Literature} \label{sssec:ResLitHist}
@@ -215,10 +242,31 @@ Challenges and unified datasets as the drivers~\cite{corke_what_2020} for semant
 
 \subsection{Simulations} \label{ssec:ResSim}
 \todo{Throw the number of total simulations run in here}
+Figure~\ref{fig:Res} displays the results of the numerical simulations, only evaluated on the second simulation case. The value indicates the percentage of cases where the proposed method outperformed the second best algorithm, where the mixing parameter was employed to update the prior. Both of these algorithms consistently outperformed the baseline.  
+\begin{figure*}
+    \centering
+    \resizebox{\textwidth}{!}{
+    \includegraphics[width=4in]{Results-10.png}}
+    \caption{\bf{
+        Relative amount of cases where the entropy for dynamically updated priors was lower than for linear mixing. The black vertical line indicates the $50$ threshold. Values lower than the threshold indicate a worse perforamnce.
+    }}
+    \label{fig:Res}
+\end{figure*}
+The decreasing bars for accuracy in figure~\ref{fig:Res} indicate that the influence of the prior diminishes when the detection accuracy improves, which is aligned with the intuition of bayesian filtering, as the detections converge. The increasing performance with increasing overlap shows that additional observations increase the robustness of the algorithm. The low value for Ptu case 0 shows that a handcrafted mixing parameter performs significantly worse, however, the high values for 1 and 2 indicate that with the right choice of parameters, the performance can increase significantly. This still holds true for cases where the placement of objects is randomized, as well as cases where a convolution of areas has taken place.~\todo{reference back to the image of a single test case here}. The Transp-row indicates that the alignment of axes of the map with the path planning do not have a significant influence on the performance.
 
 \section{Discussion} \label{sec:Disc}
-Why the stuff we do in this case might not be fully mathematically sound. But why we believe this may make semantic mapping approaches better by providing an interpretable framework with values to update
+\begin{itemize}
+    \item Simplified simulation serves as an indicator of performance
+    \item Test cases are lacking
+    \item Clear definitons of areas are lacking
+    \item example of successful application are Fei-Fei-Lis LDA Application, and the other ones for the scenes and images. And the one with the satellite images. Maybe we can use these to turn into sophisticated models?
+\end{itemize}
+
 \section{Future Work} \label{sec:Fut}
+\begin{itemize}
+    \item Adopting models that have proven to be successful in language (such as LDA)
+    \item Test Configuration
+\end{itemize}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \appendices{}              % note there is no {} to put a title. Each appendix has its own title
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
