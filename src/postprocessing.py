@@ -741,7 +741,13 @@ if __name__=="__main__":
     # arr = collectalldata(outputdir)
     # savebigarr(arr, outputdir)
     # Loading the big array of all the processed results
-    arr = readColResults(outputdir, fname="CollResults.hdf5")
+    try:
+        arr = readColResults(parentDir, fname="CollResults.hdf5")
+    except OSError:
+        print("File does not exist yet. Have to create. This may take a while...")
+        arr = collectalldata(outputdir)
+        savebigarr(arr, outputdir)
+
 
     # Do the processing here:
     axisdict = getAxisDict()
