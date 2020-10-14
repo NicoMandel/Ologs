@@ -275,7 +275,7 @@ def plot_reproduction(reprdict, valsdict, max_obs, casename=None):
         axes[row,col].imshow(v)
         title = k
         try:
-            title += " {}".format(valsdict[k])
+            title += " {:.1f}".format(valsdict[k])
         except KeyError:
             pass
         axes[row,col].set(title=title)
@@ -851,7 +851,6 @@ def testbarplot2(df, coldict):
     # g.legend.set_title("")
     plt.show()
 
-
 def testbarplot(df, coldict):
     """
         Function to test the plotting of a pandas df
@@ -905,6 +904,106 @@ def testbarplot(df, coldict):
     # plt.axvline(0.5, ls='--')    
     plt.show()
 
+def plotmulticases(outputdir):
+    """
+        Function to plot Variations over 1 single case
+    """        
+
+    somecasedict = {}
+    somecasedict["Dim"] = 64
+    somecasedict["Sim"] = 2
+    somecasedict["Fov"] = 2
+    somecasedict["HOver"] = 0.5
+    somecasedict["VOver"] = 0.5
+    somecasedict["Acc"] = 0.8
+    somecasedict["Ptu"] = 0
+    # These ones need to be varied
+    somecasedict["Transp"] = 0
+    somecasedict["Test"] = 0
+    somecasedict["Rand"] = 0
+    carr = colorarr()
+    
+    # first case 
+    casename1 = createnamefromidxdict(somecasedict)
+    gt1 = getgtdata(casename1, outputdir, carr)
+
+    # Second case
+    somecasedict["Transp"] = 1
+    casename2 = createnamefromidxdict(somecasedict)
+    gt2 = getgtdata(casename2, outputdir, carr)
+
+    # Third case
+    somecasedict["Rand"] = 1
+    somecasedict["Transp"] = 0
+    casename3 = createnamefromidxdict(somecasedict)
+    gt3 = getgtdata(casename3, outputdir, carr)
+
+    # Fourth case
+    somecasedict["Rand"] = 0
+    somecasedict["Test"] = 1
+    casename4 = createnamefromidxdict(somecasedict)
+    gt4 = getgtdata(casename4, outputdir, carr)
+
+    # Simulation case 5
+    somecasedict["Test"] = 0
+    somecasedict["Sim"] = 1
+    casename5 = createnamefromidxdict(somecasedict)
+    gt5 = getgtdata(casename5, outputdir, carr)
+
+    # Loading the path planning thing
+    tdir = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', 'tmp')
+    tf = os.path.join(tdir, "49.hdf5")
+    with h5py.File(tf, 'r') as f:
+        data = f["path"].value
+        wps = f["wps"].value
+
+    print(data.shape)
+    i = 47
+    fig, axs = plt.subplots(2,3)
+    axs[0,0].imshow(gt5)
+    axs[0,0].get_xaxis().set_visible(False)
+    axs[0,0].get_yaxis().set_visible(False)
+    axs[0,0].set(title="Simulation Case 1")
+    axs[1,0].imshow(data)
+    axs[1,0].set(title="Example Path")
+    axs[1,0].get_xaxis().set_visible(False)
+    axs[1,0].get_yaxis().set_visible(False)
+    axs[1,0].scatter(wps[i,1], wps[i,0], s=20, c='black', marker='x')
+    axs[1,0].scatter(wps[:i,1], wps[:i,0], s=10, c='blue', marker='.', alpha=0.5)
+    axs[1,0].scatter(wps[i+1:,1], wps[i+1:,0], s=10, c='black', marker='.', alpha=0.5)
+    axs[0,1].imshow(gt1)
+    axs[0,1].get_xaxis().set_visible(False)
+    axs[0,1].get_yaxis().set_visible(False)
+    axs[0,1].set(title="Simulation Case 2")
+    axs[0,2].imshow(gt2)
+    axs[0,2].get_xaxis().set_visible(False)
+    axs[0,1].get_yaxis().set_visible(False)
+    axs[0,2].set(title="Transposed")
+    axs[1,1].imshow(gt3)
+    axs[1,1].get_xaxis().set_visible(False)
+    axs[0,1].get_yaxis().set_visible(False)
+    axs[1,1].set(title="Randomised")
+    axs[1,2].imshow(gt4)
+    axs[1,2].get_xaxis().set_visible(False)
+    axs[0,1].get_yaxis().set_visible(False)
+    axs[1,2].set(title="Test Configuration")
+    plt.show()
+
+    print("Testline for Debugging")
+    
+def getgtdata(cname, resultsdir, carr):
+    try:
+        d = os.path.abspath(os.path.join(resultsdir, cname))
+        f = os.path.join(d, cname+".hdf5")
+        datadict = readh5(f)
+    except OSError:
+        raise OSError("File or Folder does not exist. Check filename again: {}".format(cname))
+    # what to do with the datadict here?
+    gtmap = datadict["Ground Truth"]
+    gt = vis_idx_map(gtmap, carr)
+    return gt
+    
+
 
 
 if __name__=="__main__":
@@ -946,11 +1045,12 @@ if __name__=="__main__":
     # 2.2 Hierarchical Dynamic is better than predicted
     # # ===================
     keytup = ("Ptu", "Sim", "Acc", "Test", "Transp", "Dim")
-    valtup = (2, 0, 2, 0, 0, 1)
+    valtup = (2, 1, 2, 0, 0, 1)
 
+    plotmulticases(outputdir)
     # TODO: This is the actual target 
-    coldict = collectedEval(entr, axisdict, casesdict)
-    barplotdict(coldict)
+    # coldict = collectedEval(entr, axisdict, casesdict)
+    # barplotdict(coldict)
 
     testindices(keytup, valtup, entr, axisdict, casesdict, outputdir)
     
