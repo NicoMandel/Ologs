@@ -671,6 +671,23 @@ def manarr(e, axisdict, keytup, valtup):
     return nind
 
 
+def comparealphas(arr_in, axisdict, casesdict):
+    """
+        Function to compare the performance of all the alphas with one another
+    """
+    ax = axisdict["Alpha"]
+    newdict = {}
+    for i, alpha in enumerate(casesdict["Alpha"]):
+        subarr = np.take(arr_in, i, axis=ax)
+        newdict[alpha] = subarr
+
+    # Predicted is index 1 in the array.
+    #  TODO: Continue here
+
+
+    print("Testline")
+
+
 if __name__=="__main__":
 
     # Prelims for all the cases that we have
@@ -695,6 +712,10 @@ if __name__=="__main__":
     # Split by the two metrics that we have
     entr = arr[...,0]
     wrong = arr[...,1]
+
+    # Function to compare the alphas
+    comparealphas(entr, axisdict, casesdict)
+
     ind_e = comparearray(entr)
     ind_w = comparearray(wrong)
     # ====================

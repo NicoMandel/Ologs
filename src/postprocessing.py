@@ -977,15 +977,15 @@ def plotmulticases(outputdir):
     axs[0,1].set(title="Simulation Case 2")
     axs[0,2].imshow(gt2)
     axs[0,2].get_xaxis().set_visible(False)
-    axs[0,1].get_yaxis().set_visible(False)
+    axs[0,2].get_yaxis().set_visible(False)
     axs[0,2].set(title="Transposed")
     axs[1,1].imshow(gt3)
     axs[1,1].get_xaxis().set_visible(False)
-    axs[0,1].get_yaxis().set_visible(False)
+    axs[1,1].get_yaxis().set_visible(False)
     axs[1,1].set(title="Randomised")
     axs[1,2].imshow(gt4)
     axs[1,2].get_xaxis().set_visible(False)
-    axs[0,1].get_yaxis().set_visible(False)
+    axs[1,2].get_yaxis().set_visible(False)
     axs[1,2].set(title="Test Configuration")
     plt.show()
 
@@ -1019,6 +1019,7 @@ if __name__=="__main__":
     # arr = collectalldata(outputdir)
     # savebigarr(arr, outputdir)
     # Loading the big array of all the processed results
+    # collectalldata(outputdir)
     try:
         arr = readColResults(parentDir, fname="CollResults.hdf5")
     except OSError:
@@ -1044,14 +1045,17 @@ if __name__=="__main__":
     # 2.1. predicted is better than flat
     # 2.2 Hierarchical Dynamic is better than predicted
     # # ===================
-    keytup = ("Ptu", "Sim", "Acc", "Test", "Transp", "Dim")
-    valtup = (2, 1, 2, 0, 0, 1)
 
-    plotmulticases(outputdir)
+    # The plotting case
+    # keytup = ("Ptu", "Sim", "Acc", "Test", "Transp", "Dim")
+    # valtup = (2, 1, 2, 0, 0, 1)
+    # plotmulticases(outputdir)
     # TODO: This is the actual target 
     # coldict = collectedEval(entr, axisdict, casesdict)
     # barplotdict(coldict)
 
+    keytup=tuple(["Sim"])
+    valtup = tuple([1])
     testindices(keytup, valtup, entr, axisdict, casesdict, outputdir)
     
 
