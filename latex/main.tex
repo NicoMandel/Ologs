@@ -7,6 +7,7 @@
 
 \usepackage[]{graphicx}    % We use this package in this document
 \usepackage{amsmath}
+\usepackage{multirow}
 \usepackage{hyperref}
 \hypersetup{
     colorlinks=true,
@@ -14,7 +15,7 @@
     filecolor=black,      
     urlcolor=black,
     citecolor=black,
-    % draft,
+    draft,
 }
 \newcommand{\ignore}[1]{}  % {} empty inside = %% comment
 \newcommand\todo[1]{\textbf{\textcolor{red}{#1}}}
@@ -83,13 +84,13 @@ As a future prospect, we briefly point to approaches from related semantic field
 
 \section{Methodology} \label{sec:Met}
 \subsection{Literature Review} \label{ssec:MetLit}
-In this research a literature review of $22$ selected works has been conducted. These $22$ works, have been sorted according to the following dimensions:
+In this research a literature review of $25$ selected works has been conducted. These $25$ works, have been sorted according to the following dimensions:
 \begin{enumerate}
     \item Robot Type
     \item Spatial Map Type
     \item Semantic Information
 \end{enumerate}
-The results of the literature overview are summarised in section~\ref{ssec:ResLit} and presented in a table in Appendix~\todo{Appendix naming}. The insights collected from the literature review are used to propose an adaption to generic semantic mapping algorithms to enhance the performance~\cite{kostavelis_semantic_2015}. Following the development pipeline as shown in figure~\ref{fig:DevProcess}, after the proposal of an algorithm, numerical simulations are conducted to highlight the improved performance. The results from the numerical simulation are presented in section~\ref{ssec:ResSim} and conclusions for future developments and potential integration into higher level architectures are drawn.
+The results of the literature overview are summarised in section~\ref{ssec:ResLit} and presented in figure~\ref{fig:LitRes}. The insights collected from the literature review are used to propose an adaption to generic semantic mapping algorithms to enhance the performance~\cite{kostavelis_semantic_2015}. Following the development pipeline as shown in figure~\ref{fig:DevProcess}, after the proposal of an algorithm, numerical simulations are conducted to highlight the improved performance. The results from the numerical simulation are presented in section~\ref{ssec:ResSim} and conclusions for future developments and potential integration into higher level architectures are drawn.
 \subsection{Simulations} \label{ssec:MetSim}
 \begin{figure}
     \centering
@@ -105,8 +106,8 @@ which is equivalent to the performance of any given detector~\cite{alom_history_
 The UAV is following a conventional lawnmower pattern, where the stride in both dimensions is defined through a desired overlap $o$ and field of view $f$~\cite{shetty_implementation_2020}. Figure~\ref{fig:SimCase} shows a snapshot of the simulation at time $t=47$.
 Four algorithms are compared in parallel with the same sampled observations for each simulation case. In all cases, only the prior $p(x_{t=0})$ for each cell is adapted and all following observations are incorporated according to equation~\ref{eq:Bayes}. In the baseline case, the prior for each cell $p(x)$ is uniform over all classes $K$. In the other three cases, some form of spatial correlation is incorporated into the prior. The prediction for the cells is made by extracting the next waypoint $t_{+1}$ and evaluating all cells that will be visible within the field-of-view $f$ at that timestep. In the second simulation, yet unobserved cells will receive a prior which is a linear combination of the uniform prior and the posterior of the already observed cells. It is weighted by a mixing parameter $\alpha \in [0, 1]$, as well as the ratio of number of observed cells divided by total cells \todo{Insert a name here}.\\
 In the other two algorithms, the prior is calculated according to an assumed distribution of ''areas'' -- $u$ -- groupings of cells. These groupings require definition of $p(x\mid u)$ and $p(u)$, as well as the number of groupings, usually smaller than $K$, analogous to topic modelling~\cite{blei_latent_2003}. In the first case, each map cell gets a prior $p(x_{t=0}) = p(x\mid u)p(u)$. In the second case, an algorithm is proposed where $p(u)$ is updated dynamically by using the observations of each cell within $f$, with a fixed $p(x\mid u)$, which leads to a new dynamically assigned $p(x)$.\\
-Three variations of $p(u)$ and $p(x\mid u)$ are considered. The first is a hand-defined version, where the mixture of ''objects'' in ''areas'' $p(x\mid u)$ is estimated by the user and the distribution of ''areas'' $p(u)$ in the map as well. In the second and third version, $p(x\mid u)$ and $p(u)$ are derived through Monte-Carlo simulations described in section~\ref{ssec:MetMC}. For the simulations $K=5$ and $3$ are used, because the reduced number allow for numerical stability, interpretability and visual simplicity when defining and evaluating simulation cases. Figure~\todo{Show image of the simulation here.} shows the two simulation environments.
-The simulation cases can be transposed, to evaluate the influence of the path planning direction on the predictive performance. The second simulation environment has further parameters, that randomize the placement of objects in quadrants, as well as a parameter that mixes two quadrants to illustrate visual diversity and reduce uniformity of areas. The simulation cases are displayed in figure~\ref{fig:SimCase} Table~\ref{tab:params} shows the parameters that have been varied 
+Three variations of $p(u)$ and $p(x\mid u)$ are considered. The first is a hand-defined version, where the mixture of ''objects'' in ''areas'' $p(x\mid u)$ is estimated by the user and the distribution of ''areas'' $p(u)$ in the map as well. In the second and third version, $p(x\mid u)$ and $p(u)$ are derived through Monte-Carlo simulations described in section~\ref{ssec:MetMC}. For the simulations $K=5$ and $3$ are used, because the reduced number allow for numerical stability, interpretability and visual simplicity when defining and evaluating simulation cases. The $5$ chosen classes are distributed according to different scales, with one class being dominant in the map, occupying over $70$ \% of the cells in the majority of cases, while another class occupies less that $1$\%.\\
+The simulation cases can be transposed, to evaluate the influence of the path planning direction on the predictive performance. The second simulation environment has further boolean parameters, that randomize the placement of objects in quadrants, as well as a parameter that mixes two quadrants to illustrate visual diversity and reduce uniformity of areas. The simulation cases are displayed in figure~\ref{fig:SimCase} and table~\ref{tab:params} shows the parameters that have been varied .
 \begin{table}[]
     \renewcommand{\arraystretch}{1.3}
     \caption{\bf Parameter variations for the simulations}
@@ -126,11 +127,11 @@ The simulation cases can be transposed, to evaluate the influence of the path pl
         \hline
         Environment & $s$& $1, 2$ \\
         \hline
-        Random & $r$ & False, True \\
+        Random & $r$ & $0, 1$ \\
         \hline
-        Transpose & $t$ & False, True \\
+        Transpose & $t$ & $0, 1$  \\
         \hline
-        Test & $c$ & False, True \\
+        Test & $c$ & $0, 1$  \\
         \hline
     \end{tabular}
 \end{table}
@@ -138,9 +139,9 @@ Alpha is evaluated in a second run of experiments, where $\alpha \in [0, 0.2, ..
 \begin{figure*}
     \centering
     \resizebox{\textwidth}{!}{
-    \includegraphics[width=4in]{SimComp10.png}}
+    \includegraphics[width=4in]{SimComp11.png}}
     \caption{\bf{
-        Example of the different test configurations. Colors represent different semantic classes. The top left corner shows the first simulation environment, the bottom left corner an example path. The top centre shows the second environment, the top right a transposed configuration, bottom centre a randomised configuration and bottom right a test configuration, which includes a partial tranpose.
+        Example of the different test configurations. Colors represent different semantic classes. The top left corner shows the first simulation environment, the bottom left corner an example path. The top centre shows the second environment, the top right a transposed configuration, bottom centre a randomised configuration and bottom right a test configuration, which includes a partial tranpose. Colors can be interpreted as seen in table~\ref{tab:colors}
     }}
     \label{fig:SimCase}
 \end{figure*}
@@ -192,13 +193,30 @@ The log-likelihoods for the individual cases are subtracted from another and the
 Only the second simulation case is included in the evaluation, since the first simulation environment was used to generate the updated probability vectors.
 \section{Results} \label{sec:Res}
 \subsection{Literature Overview} \label{ssec:ResLit}
-\todo{Put figure here with the literature}
-The semantic information in robotics is included on various levels, especially in the contemporary literature, without explicit definition
-\begin{enumerate}
-    \item Area
-    \item Region
-    \item Object
-\end{enumerate}
+% \begin{table*}[t]
+% \resizebox{\textwidth}{!}{%
+%     \begin{tabular}{lll|lllllll}
+%                                        &                          &                         & \multicolumn{7}{c}{Spatial Map Type}                                                                                                      \\
+%                                        &                          &                         & \multicolumn{2}{l}{metric}                & \multicolumn{3}{l}{topological}                         & \multicolumn{2}{l}{image}           \\
+%                                        &                          &                         &                      & \multicolumn{2}{l}{hybrid}            &                      & \multicolumn{2}{l}{hybrid}            &             \\
+%     \multirow{}{*}{\STAB{\rotatebox[origin=c]{90}{Semantic Map Type}}} & \multirow{2}{*}{objects} &                         &                      & \multicolumn{2}{l}{}                  &                      & \multicolumn{2}{l}{}                  &             \\
+%                                        &                          & \multirow{2}{*}{hybrid} & \multirow{2}{*}{}    & \multicolumn{2}{l}{\multirow{2}{*}{}} & \multirow{2}{*}{}    & \multicolumn{2}{l}{\multirow{2}{*}{}} &             \\
+%                                        &                          &                         &                      & \multicolumn{2}{l}{}                  &                      & \multicolumn{2}{l}{}                  &             \\
+%                                        & areas                    &                         &                      &                    &                  &                      &               &                       &            
+%     \end{tabular}
+%     }
+% \end{table*}
+\begin{figure*}
+    \centering
+    \resizebox{\textwidth}{!}{
+    \includegraphics[width=4in]{Lit-10.png}}
+    \caption{\bf{
+        Categorization of the reviewed literature. The x-axis represents the hierarchical level of the semantic information, whether objects or areas were used. The y-axis represents the spatial information, ranging from image space and topological associations to metric space. The colors represent the type of robot used in the research, with blue denoting UAVs, orange denoting ground robots and green generic research.
+    }}
+    \label{fig:LitRes}
+\end{figure*}
+Figure~\ref{fig:LitRes} summarises the results of the literature review. The reviewed literature has been classified according to the spatial and semantic dimensions that were used. It should be noted that in most cases the image space was used to extract semantic information, however, the map retainment is considered the defining factor for the spatial placement. Semantic information is often included on various levels, without explicit defintion. The borders between areas, regions, scenes and objects are fluid and not easy to define. Indoor research has benefitted from apparent ''gateways'' separating areas, as defined by Chown et al.~\cite{chown_prototypes_1995} and used in experiments~\cite{krishnan_visual_2010,kuipers_local_2004,wu_learning_2018}.
+
 Semantics, as study of signs, has far-reaching roots in language. Computer scientists working with language have put large efforts into attempting to model spoken and written language. Spoken language has employed Hierarchical models of language to separate spoken words (through HHMMs). Natural Language processing has looked deep and hard into classifying collections of words into topics and documents (which are considered mixtures of topics) for classification and proposition.
 What we are currently missing from these are the reliable amounts of ground-truth data.
 In speech applications: Various forms of Hierarchical Hidden Markov Models, mostly elucidated by Kevin Murphy~\todo{Cite his PhD Thesis here}
@@ -253,19 +271,32 @@ Figure~\ref{fig:Res} displays the results of the numerical simulations, only eva
     \label{fig:Res}
 \end{figure*}
 The decreasing bars for accuracy in figure~\ref{fig:Res} indicate that the influence of the prior diminishes when the detection accuracy improves, which is aligned with the intuition of bayesian filtering, as the detections converge. The increasing performance with increasing overlap shows that additional observations increase the robustness of the algorithm. The low value for Ptu case 0 shows that a handcrafted mixing parameter performs significantly worse, however, the high values for 1 and 2 indicate that with the right choice of parameters, the performance can increase significantly. This still holds true for cases where the placement of objects is randomized, as well as cases where a convolution of areas has taken place.~\todo{reference back to the image of a single test case here}. The Transp-row indicates that the alignment of axes of the map with the path planning do not have a significant influence on the performance.
-
+\begin{figure*}
+    \centering
+    \resizebox{\textwidth}{!}{
+    \includegraphics[width=4in]{SampRes-10.png}}
+    \caption{\bf{
+        Example reproductions from the different algorithms. 
+    }}
+    \label{fig:SampRes}
+\end{figure*}
 \section{Discussion} \label{sec:Disc}
+\subsection{Literature Review} \label{ssec:DiscLit}
+The literature review is not exhaustive and greatly reduces nuances of the individual research efforts. Kostavelis and Gasteratos have completed an extensive literature review of semantic mapping for mobile robotics~\cite{kostavelis_semantic_2015}, while Landsiedel et al.~\cite{landsiedel_review_2017} have reviewed spatial robotics.
 \begin{itemize}
     \item Simplified simulation serves as an indicator of performance
-    \item Test cases are lacking
+    \item Defined test cases are lacking
     \item Clear definitons of areas are lacking
     \item example of successful application are Fei-Fei-Lis LDA Application, and the other ones for the scenes and images. And the one with the satellite images. Maybe we can use these to turn into sophisticated models?
 \end{itemize}
+
+\subsection{Simulations} \label{ssec:DiscSim}
 
 \section{Future Work} \label{sec:Fut}
 \begin{itemize}
     \item Adopting models that have proven to be successful in language (such as LDA)
     \item Test Configuration
+    \item Extend model to be included in higher level architecture for semantic navigation, as presented in Mandel et al.~\cite{mandel_towards_2020}
 \end{itemize}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \appendices{}              % note there is no {} to put a title. Each appendix has its own title
