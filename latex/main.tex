@@ -75,38 +75,44 @@
 \subsection{Problem Introduction}
 
 \subsection{Why is this problem important}
-Contemporary robotics places great emphasis on including semantic signals into the perception-understanding-control-pipeline. Semantic information has been included into the passive part of SLAM~\cite{cadena_past_2016,zhang_hierarchical_2019}, as well as into the active decision~\cite{koch_automatic_2019,alirezaie_exploiting_2017}. Kostavelis and Gasteratos define semantics as " [...] related to the study between signs and the things to which they refer, that is their meaning."~\cite{kostavelis_semantic_2015}. However, in terms of spatial occurrence, multiple levels of signals are possible, such as individual objects, regions or areas~\cite{kostavelis_semantic_2015}. These s cause novel problems for definining successful navigation, as highlighted by Anderson et al.~\cite{anderson_evaluation_2018}. Furthermore, recent advances in Computer Vision have produced a wide range of different sensors signals to be annotated with semantic information, such as pixel-level segmentation, object detection or scene classification~\cite{alom_history_2018}, which operate on different spatial levels.\\
-The influence of these novel signals on the level of names on conventional robotics algorithms, such as filters and path planners, is an active field of research. Furthermore, UAVs represent a special case of robotics, which are impacted by unique viewing angles, as well as risk-averse requirements.
+Contemporary robotics places great emphasis on including semantic signals into the perception-understanding-control-pipeline. Semantic information has been included into the passive part of SLAM~\cite{cadena_past_2016,zhang_hierarchical_2019}, as well as into active path planning~\cite{koch_automatic_2019,alirezaie_exploiting_2017}. Kostavelis and Gasteratos define semantics as " [...] related to the study between signs and the things to which they refer, that is their meaning."~\cite{kostavelis_semantic_2015}. However, in terms of spatial occurrence, multiple levels of signals are possible, such as individual objects, regions or areas~\cite{kostavelis_semantic_2015}. These s cause novel problems for definining successful navigation, as highlighted by Anderson et al.~\cite{anderson_evaluation_2018}. Furthermore, recent advances in Computer Vision have produced a wide range of different sensors signals to be annotated with semantic information, such as pixel-level segmentation, object detection or scene classification~\cite{alom_history_2018}, which operate on different spatial levels.\\
+The influence of these signals on the level of names on conventional robotics algorithms, such as filters and path planners, is an active field of research~\cite{kostavelis_semantic_2015,cadena_past_2016,anderson_evaluation_2018}. Furthermore, UAVs represent a special case of robotics, which are impacted by unique viewing angles, as well as risk-averse requirements and hard constraints on computational resources~\cite{mandel_method_2020,gonzalez_unmanned_2016}.
+\begin{figure}
+    \centering
+    \includegraphics[width=3.25in]{Aerial11.png}\\
+    \caption{\bf{A UAV performing a semantic mapping task on an urban area, demonstrated by assigning colors to classes of objects.}}
+    \label{fig:AerialImg}
+\end{figure}
 \subsection{What do we propose for solving it}
-In this paper we provide an overview of a selected subset of the literature on combining semantic signals with spatial information in robotics to illustrate the evolution of the field with novel algorithms information, specifically in the context of UAVs. First, we provide a brief overview of early approaches from the turn of the century. Second, we display a select subset of contemporary approaches, which include semantic information into novel algorithms. Third, we highlight approaches that incorporate semantic information into UAV pipelines.\\
-In the second section we conduct numerical experiments on the well-defined problem of semantic mapping of a two-dimensional occupancy grid~\cite{gonzalez_unmanned_2016} and show how conventional parameters surrounding the quality of observations, overlap and field of view influence a naive bayesian filter. We supplement the filter through an informed prior and demonstrate the effectiveness and shortcomings of the approach. This research is directed towards enhancing the performance of a module which is tasked with understanding and evaluating the semantic information of a UAV as demonstrated by Mandel et al.~\cite{mandel_towards_2020}\\
-As a future prospect, we briefly point to approaches from related semantic fields, such as speech recognition and language processing, which hold the potential to enhance the inclusion of semantic information.\todo{cite lienou - semantic annotation of satellite images using LDA}.
-
+In this paper we provide an overview of a selected subset of literature, which combines semantic signals with spatial information in robotics to demonstrate the state of the research. The literature is categorised with respect to different dimension.\\
+In the second section an algorithm is derived from the literature to improve semantic mapping of a two-dimensional occupancy grid map and it is shown how parameters surrounding the quality of observations, overlap and field of view influence a Bayesian filter approach. We supplement the filter through an informed prior and demonstrate the effectiveness of the approach. This research is directed towards enhancing the performance of a module which is tasked with extracting and evaluating the semantic information during UAV path planning as exhibited by Mandel et al.~\cite{mandel_towards_2020}.\\
+The final section of this work points to successful approaches from related fields dealing with semantic information, such as speech recognition and language, which could hold the potential to enhance the inclusion of semantic information, as demonstrated by Lienou et al.~\cite{lienou_semantic_2010}.
 \section{Methodology} \label{sec:Met}
-\subsection{Literature Review} \label{ssec:MetLit}
-In this research a literature review of $25$ selected works has been conducted. These $25$ works, have been sorted according to the following dimensions:
+\subsection{Literature Taxonomy} \label{ssec:MetLit}
+$25$ papers have been included in the research. The papers are sorted according to the following three dimensions and the employed methods are extracted:
 \begin{enumerate}
     \item Robot Type
-    \item Spatial Map Type
-    \item Semantic Information
+    \item Spatial Map
+    \item Semantic Map
 \end{enumerate}
-The results of the literature overview are summarised in section~\ref{ssec:ResLit} and presented in figure~\ref{fig:LitRes}. The insights collected from the literature review are used to propose an adaption to generic semantic mapping algorithms to enhance the performance~\cite{kostavelis_semantic_2015}. Following the development pipeline as shown in figure~\ref{fig:DevProcess}, after the proposal of an algorithm, numerical simulations are conducted to highlight the improved performance. The results from the numerical simulation are presented in section~\ref{ssec:ResSim} and conclusions for future developments and potential integration into higher level architectures are drawn.
+The literature taxonomy is presented in section~\ref{ssec:ResLit} and illustrated by figure~\ref{fig:LitRes}. The information from the literature is used to derive an algorithm following the development pipeline as shown in figure~\ref{fig:DevProcess}. Following the proposal of an algorithm, numerical simulations are conducted to highlight the improved performance. The results from the numerical simulation are presented in section~\ref{ssec:ResSim} and conclusions for future developments and potential integration into higher level architectures are drawn in section~\ref{ssec:DiscSim}.
 \subsection{Simulations} \label{ssec:MetSim}
 \begin{figure}
     \centering
-    \includegraphics[width=3.25in]{2-3DevelopmentCycle}\\
-    \caption{\bf{A generic autonomy development cycle as described by Ladosz et al.~\protect\cite{ladosz_generic_2019}}}
+    \includegraphics[width=3.25in]{2-3DevelopmentCycle.png}\\
+    \caption{\bf{An adapted autonomy development cycle based on the generic cycle by Ladosz et al.~\protect\cite{ladosz_generic_2019}}}
     \label{fig:DevProcess}
 \end{figure}
-Numerical simulations are conducted to uncover influences of parameters of the mapping pipeline and differences between algorithms. The task is concerned with recreating a map from noisy semantic observations. The map is an evenly spaced 2D grid $M \times M$ defined by a one-hot vector of the true identity, $x_{i,j} = \{0,..., 1, ..., 0\}_K$, with $K$ indicating the number of classes. The probability of making an observation $z$ is given by $p(z\mid x)$. The pose is assumed to be known for the entire trajectory. At each time increment $t$ the UAV observes cells within its field of view $f$, receives a one-hot observation proportional to $p(z\mid x)$ and updates the posterior of each map cell given by Bayes' rule as:
+Numerical simulations are conducted to uncover influences of parameters of the mapping pipeline and differences between algorithms. Figure~\ref{fig:SimCase} shows the setup of the simulation. The task is recreating a map from noisy semantic observations. The map is an evenly spaced 2D grid $M \times M$ defined by a one-hot vector of the true identity, $x_{i,j} = \{0,..., 1, ..., 0\}_K$, with $K$ indicating the number of classes. The probability of making an observation $z$ is given by $p(z\mid x)$. The pose is assumed to be known for the entire trajectory. At each time increment $t$ the UAV observes cells within its field of view $f$, receives a one-hot observation proportional to $p(z\mid x)$ and updates the posterior of each map cell given by Bayes' rule as:
 \begin{equation} \label{eq:Bayes}
     p(x\mid z) = \frac{p(z\mid x) p(x)}{p(z)}
 \end{equation}
 which is equivalent to the performance of any given detector~\cite{alom_history_2018}.
-The UAV is following a conventional lawnmower pattern, where the stride in both dimensions is defined through a desired overlap $o$ and field of view $f$~\cite{shetty_implementation_2020}. Figure~\ref{fig:SimCase} shows a snapshot of the simulation at time $t=47$.
-Four algorithms are compared in parallel with the same sampled observations for each simulation case. In all cases, only the prior $p(x_{t=0})$ for each cell is adapted and all following observations are incorporated according to equation~\ref{eq:Bayes}. In the baseline case, the prior for each cell $p(x)$ is uniform over all classes $K$. In the other three cases, some form of spatial correlation is incorporated into the prior. The prediction for the cells is made by extracting the next waypoint $t_{+1}$ and evaluating all cells that will be visible within the field-of-view $f$ at that timestep. In the second simulation, yet unobserved cells will receive a prior which is a linear combination of the uniform prior and the posterior of the already observed cells. It is weighted by a mixing parameter $\alpha \in [0, 1]$, as well as the ratio of number of observed cells divided by total cells \todo{Insert a name here}.\\
-In the other two algorithms, the prior is calculated according to an assumed distribution of ''areas'' -- $u$ -- groupings of cells. These groupings require definition of $p(x\mid u)$ and $p(u)$, as well as the number of groupings, usually smaller than $K$, analogous to topic modelling~\cite{blei_latent_2003}. In the first case, each map cell gets a prior $p(x_{t=0}) = p(x\mid u)p(u)$. In the second case, an algorithm is proposed where $p(u)$ is updated dynamically by using the observations of each cell within $f$, with a fixed $p(x\mid u)$, which leads to a new dynamically assigned $p(x)$.\\
-Three variations of $p(u)$ and $p(x\mid u)$ are considered. The first is a hand-defined version, where the mixture of ''objects'' in ''areas'' $p(x\mid u)$ is estimated by the user and the distribution of ''areas'' $p(u)$ in the map as well. In the second and third version, $p(x\mid u)$ and $p(u)$ are derived through Monte-Carlo simulations described in section~\ref{ssec:MetMC}. For the simulations $K=5$ and $3$ are used, because the reduced number allow for numerical stability, interpretability and visual simplicity when defining and evaluating simulation cases. The $5$ chosen classes are distributed according to different scales, with one class being dominant in the map, occupying over $70$ \% of the cells in the majority of cases, while another class occupies less that $1$\%.\\
+The UAV is following a conventional lawnmower pattern, where the stride in both dimensions is defined through a desired overlap $o$ and field of view $f$~\cite{shetty_implementation_2020}. Figure~\ref{fig:SimCase} shows a snapshot of the simulation at time $t=47$. The green cells in the figure indicate the cells that have already been observed, the red cells the current $f$ of the UAV, which is marked by the black $\times$. The blue cells denote the cells where the prior $p(x)$ has been predicted at $t_{-1}$, based on the posterior of the red cells.\\ 
+Four algorithms are compared in parallel with the same sampled observations. In all cases, only the prior $p(x_{t=0})$ for each cell is predicted and all subsequent observations are incorporated according to equation~\ref{eq:Bayes}. In the baseline case, the prior for each cell $p(x)$ is uniform over all classes $K$. In the other three cases, spatial correlation is incorporated into the prior. The prediction for the cells is made by extracting the next waypoint $t_{+1}$ and evaluating all cells that will be visible within the field-of-view $f$ at that timestep. In the second simulation, yet unobserved cells will receive a prior which is a linear combination of the uniform prior and the posterior of the already observed cells. It is weighted by a mixing parameter $\alpha \in [0, 1]$, as well as the ratio of number of observed cells divided by total cells.\\
+The other algorithms are based on assumptions drawn from the results of the literature taxonomy as detailed in section~\ref{ssec:ResLit}. Incorporating information in a hierarchical context has proven successful in related semantic fields, such as speech processing~\cite{fine_hierarchical_1998} and topic modelling~\cite{blei_latent_2003}. These approaches have been succesfully adapted to related domains, such as SLAM~\cite{zhang_hierarchical_2019}, or image annotation~\cite{fei-fei_bayesian_2005,lienou_semantic_2010}. Some algorithms have incorporated the semantic information succesfully for the purpose of navigation~\cite{koch_automatic_2019,chaplot_object_2020,wu_learning_2018,alirezaie_exploiting_2017}.\\
+Therefore, two algorithms are proposed that recalculate the prior based on hierarchical information: the prior is calculated according to an assumed distribution of ''areas'' -- $u$ -- groupings of cells. These groupings require definition of $p(x\mid u)$ and $p(u)$, as well as the number of groupings -- usually smaller than $K$ -- analogous to topic modelling~\cite{blei_latent_2003}. In the first case, every map cell is assigned a fixed prior of $p(x_{t=0}) = p(x\mid u)p(u)$. In the second case, an algorithm is proposed where $p(u)$ is updated dynamically by using the observations of each cell within $f$, with a fixed $p(x\mid u)$, which leads to a new dynamically assigned $p(x)$.\\
+Three variations of $p(u)$ and $p(x\mid u)$ are considered. The first is a hand-defined version, where the mixture of ''objects'' in ''areas'' $p(x\mid u)$ is estimated by the user and the distribution of ''areas'' $p(u)$ in the map as well. In the second and third version, $p(x\mid u)$ and $p(u)$ are derived through Monte-Carlo simulations described in section~\ref{ssec:MetMC}. $K=5$ and $3$ are used for the simulations, because the small number allows for interpretability, visual simplicity and numerical stability when defining and evaluating simulation cases. Robotics research is often constrained by the overlap of classes available in detection and simulation environments~\cite{chaplot_object_2020}, such that $5$ is a reasonable approximation for numerical research. The chosen classes are distributed according to different scales, with one class being dominant in the map, occupying over $70$ \% of the cells in the majority of cases, while another class occupies less that $1$\%. Furthermore, the classes occupy different connected regions of the map, ranging from $1$ isolated cell to multiples of the field-of-view, to research how different scales influence the performance.\\
 The simulation cases can be transposed, to evaluate the influence of the path planning direction on the predictive performance. The second simulation environment has further boolean parameters, that randomize the placement of objects in quadrants, as well as a parameter that mixes two quadrants to illustrate visual diversity and reduce uniformity of areas. The simulation cases are displayed in figure~\ref{fig:SimCase} and table~\ref{tab:params} shows the parameters that have been varied .
 \begin{table}[]
     \renewcommand{\arraystretch}{1.3}
@@ -182,45 +188,28 @@ are run on the first environment. $p(u)$ and $p(x\mid u)$ are sampled from a sim
     \item The log-likelihood is smaller than the current smallest
     \item The difference between the predicted algorithm and the dynamic algorithm is bigger than the current biggest
 \end{enumerate}
-The final best results are used as parameters for simulations as defined in section~\ref{ssec:MetSim}.
+The final best results are used as additional parameters $p(u)$ and $p(x\mid u)$ for simulations as defined in section~\ref{ssec:MetSim}.
 \subsubsection{Evaluation}\label{ssec:MetEval}
 To evaluate the reproduction quality of the posterior map for each individual state, the sum over the log-likelihoods for each cell $m_{i,j}$, defined by:
 \begin{equation} \label{eq:Entropy}
-    H_{i,j} = - \sum_{k} p_{i,j,k}~ln(q_{i,j,k})
+    H = - \sum_{i,j,k} p_{i,j,k}~ln(q_{i,j,k})
 \end{equation}
-is used. $p_i$ represents the true state and $q_i$ the estimated map state. Furthermore, the number of wrongly predicted cells is calculated as a secondary indicator.
-The log-likelihoods for the individual cases are subtracted from another and the count of the positive and negative samples indicate the relative quality of the reproduction for the different simulation environment. If the count is below $50$\%, the proposed solution performs worse. The metric is chosen as a robust indicator, which is not affected by large variances in individual cases. 
-Only the second simulation case is included in the evaluation, since the first simulation environment was used to generate the updated probability vectors.
+is calculated. $p_i$ represents the true state and $q_i$ the estimated map state.
+For the comparison of different algorithms running with the same parameters, the log-likelihoods for each individual case are subtracted from another and the count of the positive and negative samples indicate the relative quality of the reproduction. If the count is below $50$\%, the proposed solution performs worse. This metric is chosen as a robust indicator, which is not affected by large variances of individual cases. 
+Only the second simulation case is included in the evaluation, since the first simulation environment was used to generate sample probability vectors, as described in section~\ref{ssec:MetMC}.
 \section{Results} \label{sec:Res}
 \subsection{Literature Overview} \label{ssec:ResLit}
-% \begin{table*}[t]
-% \resizebox{\textwidth}{!}{%
-%     \begin{tabular}{lll|lllllll}
-%                                        &                          &                         & \multicolumn{7}{c}{Spatial Map Type}                                                                                                      \\
-%                                        &                          &                         & \multicolumn{2}{l}{metric}                & \multicolumn{3}{l}{topological}                         & \multicolumn{2}{l}{image}           \\
-%                                        &                          &                         &                      & \multicolumn{2}{l}{hybrid}            &                      & \multicolumn{2}{l}{hybrid}            &             \\
-%     \multirow{}{*}{\STAB{\rotatebox[origin=c]{90}{Semantic Map Type}}} & \multirow{2}{*}{objects} &                         &                      & \multicolumn{2}{l}{}                  &                      & \multicolumn{2}{l}{}                  &             \\
-%                                        &                          & \multirow{2}{*}{hybrid} & \multirow{2}{*}{}    & \multicolumn{2}{l}{\multirow{2}{*}{}} & \multirow{2}{*}{}    & \multicolumn{2}{l}{\multirow{2}{*}{}} &             \\
-%                                        &                          &                         &                      & \multicolumn{2}{l}{}                  &                      & \multicolumn{2}{l}{}                  &             \\
-%                                        & areas                    &                         &                      &                    &                  &                      &               &                       &            
-%     \end{tabular}
-%     }
-% \end{table*}
 \begin{figure*}
     \centering
     \resizebox{\textwidth}{!}{
-    \includegraphics[width=4in]{Lit-10.png}}
+    \includegraphics[width=4in]{Lit-11.png}}
     \caption{\bf{
-        Categorization of the reviewed literature. The x-axis represents the hierarchical level of the semantic information, whether objects or areas were used. The y-axis represents the spatial information, ranging from image space and topological associations to metric space. The colors represent the type of robot used in the research, with blue denoting UAVs, orange denoting ground robots and green generic research.
+        Categorization of the reviewed literature. The y-axis represents the level of the semantic information, whether objects, areas or a hierarchical combination were used. The x-axis represents the spatial information, ranging from image space over topological associations to metric space. The colors represent the type of robot used in the research, with blue denoting UAVs, orange denoting ground robots and green generic research.
     }}
     \label{fig:LitRes}
 \end{figure*}
-Figure~\ref{fig:LitRes} summarises the results of the literature review. The reviewed literature has been classified according to the spatial and semantic dimensions that were used. It should be noted that in most cases the image space was used to extract semantic information, however, the map retainment is considered the defining factor for the spatial placement. Semantic information is often included on various levels, without explicit defintion. The borders between areas, regions, scenes and objects are fluid and not easy to define. Indoor research has benefitted from apparent ''gateways'' separating areas, as defined by Chown et al.~\cite{chown_prototypes_1995} and used in experiments~\cite{krishnan_visual_2010,kuipers_local_2004,wu_learning_2018}.
-
-Semantics, as study of signs, has far-reaching roots in language. Computer scientists working with language have put large efforts into attempting to model spoken and written language. Spoken language has employed Hierarchical models of language to separate spoken words (through HHMMs). Natural Language processing has looked deep and hard into classifying collections of words into topics and documents (which are considered mixtures of topics) for classification and proposition.
-What we are currently missing from these are the reliable amounts of ground-truth data.
-In speech applications: Various forms of Hierarchical Hidden Markov Models, mostly elucidated by Kevin Murphy~\todo{Cite his PhD Thesis here}
-\subsubsection{Historic Literature} \label{sssec:ResLitHist}
+Figure~\ref{fig:LitRes} summarises the results of the literature review. The reviewed literature has been classified according to the spatial and semantic dimensions that were used. It should be noted that in most cases the image space was used to extract semantic information, however, the map retainment is considered the defining factor for the spatial placement. Semantic information is often included on various levels, without explicit defintion. The borders between areas, regions, scenes and objects are fluid and not easy to define.
+\subsubsection{Generic Research} \label{sssec:ResLitHist}
 The association of sensory inputs with symbolic systems and intricate representations has been discussed from a cognitive viewpoint by Harnad et al.~\cite{harnad_symbol_1990}.\\
 Chown and colleagues~\cite{chown_prototypes_1995} researched the "what" and "where" subsystems of the human cognition and their learning over time. They captured the influence of landmark recognition, recreation of consistent Euclidean maps, as well as the importance of gateways, representing transitions between regions.\\
 Kuipers~\cite{kuipers_spatial_2000} connected places, defined as 0D points, through 1D paths with 2D regions in topological maps. The proposed maps had a sensory and control level, a causal level, a topological level and a metrical level, all of which were connnected hierarchically.\\ Kuipers et al.~\cite{kuipers_local_2004} also conducted experiments where local metric room representations were linked through topological constraints.\\
@@ -249,13 +238,7 @@ Dang et al.~\cite{dang_autonomous_2018} employed an object detector on top of a 
 Koch et al.~\cite{koch_automatic_2019} respected semantic constraints during the path planning step for 3D reconstruction using UAVs while maintaining the quality of the reconstruction.
 Toudeshki et al.~\cite{toudeshki_robust_2018} combined a visual teach-and-repeat approach with an object detector to funnel the UAV to follow a path.
 % \subsection{Literature on Hierarchical models from NLP}
-\subsection{Open Problems for semantic UAV navigation} \label{ssec:ResOpen}
-Problem: "Gateways" as defined by Chown~\cite{chown_prototypes_1995}, used by Kuipers~\cite{kuipers_local_2004}, Krishnan and Krishan~\cite{krishnan_visual_2010} and Wu et al.~\cite{wu_learning_2018} for successful implementations are difficult outdoors - where a room ends is quite easy (with a door/window), but where does the lawn end and the golf court begin? \\
-Problem: RL are not capable of generalizing well~\cite{chaplot_object_2020} and also do not consistently outperform generalized path planning.\\
-Problem: UAV viewpoints provide a hurdle for use of off-the-shelf NNs~\cite{richardwebster_psyphy:_2019}.\\
-Problem: UAV path-planning is often done in a way to reliably cover large areas~\cite{vanegas_novel_2018}.\\
-Task definition is difficult, see Anderson et al.~\cite{anderson_evaluation_2018}.
-Challenges and unified datasets as the drivers~\cite{corke_what_2020} for semantic tasks for UAVs are difficult to acquire. Racing has recently largely benefitted from clear definition of tasks and the performance increases have been shown to be tremendous.
+
 \todo{Include possible remedies from Natural Language Processing}
 
 \subsection{Simulations} \label{ssec:ResSim}
@@ -270,7 +253,7 @@ Figure~\ref{fig:Res} displays the results of the numerical simulations, only eva
     }}
     \label{fig:Res}
 \end{figure*}
-The decreasing bars for accuracy in figure~\ref{fig:Res} indicate that the influence of the prior diminishes when the detection accuracy improves, which is aligned with the intuition of bayesian filtering, as the detections converge. The increasing performance with increasing overlap shows that additional observations increase the robustness of the algorithm. The low value for Ptu case 0 shows that a handcrafted mixing parameter performs significantly worse, however, the high values for 1 and 2 indicate that with the right choice of parameters, the performance can increase significantly. This still holds true for cases where the placement of objects is randomized, as well as cases where a convolution of areas has taken place.~\todo{reference back to the image of a single test case here}. The Transp-row indicates that the alignment of axes of the map with the path planning do not have a significant influence on the performance.
+The decreasing bars for accuracy in figure~\ref{fig:Res} indicate that the influence of the prior diminishes when the detection accuracy improves, which is aligned with the intuition of Bayesian filtering, as the detections converge. The increasing performance with increasing overlap shows that additional observations increase the robustness of the algorithm. The low value for Ptu case 0 shows that a handcrafted mixing parameter performs significantly worse, however, the high values for 1 and 2 indicate that with the right choice of parameters, the performance can increase significantly. This still holds true for cases where the placement of objects is randomized, as well as cases where a convolution of areas has taken place, as indicated in the right column of figure~\ref{fig:SimCase}. The Transp-row indicates that the alignment of axes of the map with the path planning do not have a significant influence on the performance.
 \begin{figure*}
     \centering
     \resizebox{\textwidth}{!}{
@@ -282,17 +265,29 @@ The decreasing bars for accuracy in figure~\ref{fig:Res} indicate that the influ
 \end{figure*}
 \section{Discussion} \label{sec:Disc}
 \subsection{Literature Review} \label{ssec:DiscLit}
-The literature review is not exhaustive and greatly reduces nuances of the individual research efforts. Kostavelis and Gasteratos have completed an extensive literature review of semantic mapping for mobile robotics~\cite{kostavelis_semantic_2015}, while Landsiedel et al.~\cite{landsiedel_review_2017} have reviewed spatial robotics.
+The literature review is not exhaustive and greatly reduces nuances of the individual research efforts. Kostavelis and Gasteratos have completed an extensive literature review of semantic mapping for mobile robotics~\cite{kostavelis_semantic_2015}, while Landsiedel et al.~\cite{landsiedel_review_2017} have reviewed spatial relations in robotics.
 \begin{itemize}
     \item Simplified simulation serves as an indicator of performance
     \item Defined test cases are lacking
     \item Clear definitons of areas are lacking
     \item example of successful application are Fei-Fei-Lis LDA Application, and the other ones for the scenes and images. And the one with the satellite images. Maybe we can use these to turn into sophisticated models?
+    \item 
 \end{itemize}
 
 \subsection{Simulations} \label{ssec:DiscSim}
-
+Reliance on parameters is demonstrated through the significant drop in performance for Ptu as seen in figure~\ref{fig:Res}. This is the key driver of a successful model, requires big data and good data to learn, similar to LDA~\cite{blei_latent_2003}. 
+\subsubsection{Open Problems for semantic UAV navigation}
+Indoor research has benefitted from apparent ''gateways'' separating areas, as defined by Chown et al.~\cite{chown_prototypes_1995} and used in experiments~\cite{krishnan_visual_2010,kuipers_local_2004,wu_learning_2018}.
+Problem: "Gateways" as defined by Chown~\cite{chown_prototypes_1995}, used by Kuipers~\cite{kuipers_local_2004}, Krishnan and Krishan~\cite{krishnan_visual_2010} and Wu et al.~\cite{wu_learning_2018} for successful implementations are difficult outdoors - where a room ends is quite easy (with a door/window), but where does the lawn end and the golf court begin? \\
+Problem: RL are not capable of generalizing well~\cite{chaplot_object_2020} and also do not consistently outperform generalized path planning.\\
+Problem: UAV viewpoints provide a hurdle for use of off-the-shelf NNs~\cite{richardwebster_psyphy:_2019}, along with semantic computer vision performance at expense of computation~\cite{boroujerdian_mavbench_2018}. Performance accelerators in computer vision have been huge datasets and compute, unified metrics, etc, see Corke et al.~\cite{corke_what_2020}.\\
+Problem: UAV path-planning is often done in a way to reliably cover large areas~\cite{vanegas_novel_2018}.\\
+Problem: UAV experiments are dificult - require manifestation of the algorithm, with safety and computational constraints~\cite{mandel_method_2020}, as well as quality requirements~\cite{boroujerdian_mavbench_2018,malatova_how_2020}
+Task definition is difficult, see Anderson et al.~\cite{anderson_evaluation_2018}.
+Challenges and unified datasets as the drivers~\cite{corke_what_2020} for semantic tasks for UAVs are difficult to acquire. Racing has recently largely benefitted from clear definition of tasks and the performance increases have been shown to be tremendous.
 \section{Future Work} \label{sec:Fut}
+Semantics, as study of signs, has profound roots in language. Computer scientists working with language have put large efforts into attempting to model spoken and written language. Spoken language has employed Hierarchical models of language to separate spoken words (through HHMMs). Natural Language processing has looked deep and hard into classifying collections of words into topics and documents (which are considered mixtures of topics) for classification and proposition.
+What we are currently missing from these are the reliable amounts of ground-truth data. In speech applications: Various forms of Hierarchical Hidden Markov Models, mostly elucidated by Kevin Murphy~\cite{murphy_dynamic_2002}
 \begin{itemize}
     \item Adopting models that have proven to be successful in language (such as LDA)
     \item Test Configuration
