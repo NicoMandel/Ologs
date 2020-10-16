@@ -239,7 +239,7 @@ Chaplot~\etal~\cite{chaplot_object_2020} won the 2020 CVPR challenge to navigate
 \subsubsection{UAVs} \label{sssec:ResLitUAV}
 \begin{figure*}[t]
     \centering
-    \includegraphics[width=\textwidth]{Results-10.png}
+    \includegraphics[width=\textwidth]{Results-13.png}
     \caption{\bf{
         Results calculated by equation~\ref{eq:Entropy} of the two best performing algorithms, algorithm 2 and the proposed algorithm 4, subtracted from one another and related through equation~\ref{eq:eval}. The vertical black dashed line indicates the $\mathbf{50}$\% threshold. Values lower than the threshold represent a worse performance of the proposed algorithm 4.
     }}
@@ -259,7 +259,7 @@ Numerical simulations were conducted to test the performance of the algorithms u
 % go from nondescript to descript here!
 The bars for \emph{Dim} and \emph{Fov} -- $f$ in table~\ref{tab:params} -- indicate that neither the dimensions of the map $M$, nor an extended field of view $f$ lead to an improvement of one algorithm over the other. \emph{Transp} and \emph{Test} -- $t$ and $c$ in table~\ref{tab:params} respectively -- also do not significantly influence the result.
 
-The decreasing bars for the accuracy-parameter in figure~\ref{fig:Res} indicate that the influence of the prior diminishes when the detection accuracy improves, which is aligned with the intuition of Bayesian filtering, as the detections converge to the true state. The increasing performance with increasing overlap $o$ -- which is running in parallel for both axes -- show that the additional observations benefit the hierarchical algorithm more than a linear mixing. The higher value for the \emph{Rand} parameter -- Random $r$ in table~\ref{tab:params} -- show that even in a randomized setting, the hierarchical prediction can lead to increased performance. The low value for \emph{Ptu} case 0 shows that a manually defined detection parameter performs significantly worse, however, the high values for 1 and 2 indicate that with the right parameters for $p(u)$ and $p(x\mid u)$, the performance can increase significantly.
+The decreasing bars for the accuracy-parameter in figure~\ref{fig:Res} indicate that the influence of the prior diminishes when the detection accuracy improves, which is aligned with the intuition of Bayesian filtering, as the detections converge to the true state. The increasing performance with increasing overlap $o$ -- which is running in parallel for both axes -- show that the additional observations benefit the hierarchical algorithm more than a linear mixing. The higher value for the \emph{Rand} parameter -- $r$ in table~\ref{tab:params} -- show that even in a randomized setting, the hierarchical prediction can lead to increased performance. The low value for \emph{Ptu} case 0 shows that a manually defined detection parameter performs significantly worse, however, the high values for 1 and 2 indicate that with the right parameters for $p(u)$ and $p(x\mid u)$, the performance can increase significantly.
 \begin{figure*}
     \centering
     \resizebox{\textwidth}{!}{
@@ -282,6 +282,7 @@ On the one hand the viewpoint of UAVs compared to generalised image datasets is 
 Semantic research generally benefits from unified metrics~\cite{anderson_evaluation_2018}, simulation environments and challenges~\cite{chaplot_object_2020,yang_visual_2018}. The driving force of standardised environments and challenges~\cite{corke_what_2020} can also be seen in the UAV community, as exhibited by the development of autonomous drone racing algorithms~\cite{moon_challenges_2019}.
 
 Chown~\etal~\cite{chown_prototypes_1995} emphasize the importance of ''gateways'' as transitions between regions, which arise naturally in manmade houses and have been used in many research efforts for ground-based vechicles~\cite{kuipers_local_2004,wu_learning_2018,krishnan_visual_2010}, however, may be difficult to define for UAVs. Where an area ends and another begins may be ambiguous for large outdoor environments, which are usually covered by UAVs~\cite{vanegas_novel_2018,shetty_implementation_2020}, whereas rooms often provide a natural separation in indoor environments. Furthermore, definitions of semantic area, region, or scene, if representing a spatial extent, could not be identified from the literature and the borders may be fluid between all of these defintions depending on the task and research field.
+
 \subsection{Simulations} \label{ssec:DiscSim}
 The results of the simulations indicate that incorporating spatial correlation can benefit the assignment of class names to grid cells, which is aligned with general robotic mapping approaches~\cite{thrun_probabilistic_2005}, as well as the intuition behind convolutions in general. The inclusion of explicitly hierarchical information into a mapping pipeline can be beneficial, but is largely dependant on the robustness of the model, much like topic modelling approaches~\cite{fei-fei_bayesian_2005,blei_latent_2003}.
 

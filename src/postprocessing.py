@@ -895,7 +895,7 @@ def testbarplot(df, coldict):
     # y_pos = np.arange(df.shape[0])
     # ax.barh(y_pos, df["Ratio"], align='center')
     alph = 0.85
-    c1 = (0.1, 0.1, 0.1, alph)
+    c1 = (0.5, 0, 0.5, alph)
     c2 = (0.662, 0.674, 0.647, alph)
     c3 = (0.384, 0.976, 0.411, alph)
     c4 = (235/255, 103/255, 52/255, alph)
@@ -905,33 +905,89 @@ def testbarplot(df, coldict):
     # TODO: Adapt the names that are 0, 1 - find better way!
     def adaptdictnames():
         return tuple([False, True])
+    
+    h_ratios = []
+    for i in coldict.values():
+        h_ratios.append(len(i.keys()))
+    gs_kws =dict(height_ratios=h_ratios)
 
     # cols = ["blue", "black", "green", "red", "cyan"]
     # cm = plt.get_cmap('winter')
-    fig, axs = plt.subplots(len(coldict.keys()), sharex=True)
+    fig, axs = plt.subplots(len(coldict.keys()), sharex=True, figsize=(14,7), gridspec_kw=gs_kws)
     for i, k in enumerate(coldict.keys()):
         subdf = df.loc[k]
         y_pos = np.arange(subdf.shape[0])
         axs[i].barh(y_pos, subdf["Ratio"], align='center', color=c)
         axs[i].set_yticks(y_pos)
 
-        axs[i].set_yticklabels(coldict[k], fontsize=14)
+        axs[i].set_yticklabels(coldict[k], fontsize=16, fontweight="bold")
         axs[i].invert_yaxis()       # labels read top to bottom - says matplotlib
-        if i < len(coldict.keys()) - 1:
+        if i < (len(coldict.keys()) - 1):
             axs[i].get_xaxis().set_visible(False)
             axs[i].spines["bottom"].set_visible(False)
         else:
-            axs[i].tick_params(axis="x", labelsize=14)
+            axs[i].tick_params(axis="x", labelsize=20)
+            # axs[i].xaxis.label.set_fontsize(24)
             # axs[i].tick_params(axis='x', fontsize=14)
             # pass
-        axs[i].set_ylabel(k, rotation='horizontal', va="center", ha="right", fontsize=20)
+        axs[i].set_ylabel(k, rotation=45, va="center", ha="right", fontsize=20, fontweight="bold")
 
         r = axs[i].spines["right"].set_visible(False)
         t = axs[i].spines["top"].set_visible(False)
         axs[i].axvline(0.5, ls='--', color='k', linewidth=4)
-    # plt.axvline(0.5, ls='--')    
+    # plt.axvline(0.5, ls='--')
+    plt.tight_layout()
     plt.show()
 
+def testbarplot3(df, coldict):
+    """
+        Function to test the plotting of a pandas df
+    """
+
+    alph = 0.85
+    c1 = (0.1, 0.1, 0.1, alph)
+    c2 = (0.662, 0.674, 0.647, alph)
+    c3 = (0.384, 0.976, 0.411, alph)
+    c4 = (235/255, 103/255, 52/255, alph)
+    c5 = (0.172, 0.533, 0.866, alph)
+    c = [c5, c4, c3, c2, c1]
+
+
+    h_ratios = []
+    for i in coldict.values():
+        h_ratios.append(len(i.keys()))
+    
+    fig = plt.figure(constrained_layout=True, figsize=(15,7))
+    spec = fig.add_gridspec(ncols=1, nrows=len(h_ratios), height_ratios=h_ratios)
+
+    for i, k in enumerate(coldict.keys()):
+        ax = fig.add_subplot(spec[i])
+        subdf = df.loc[k]
+        y_pos = np.arange(subdf.shape[0])
+        ax.barh(y_pos, subdf["Ratio"], align='center', color=c)
+        ax.set_yticks(y_pos)
+
+        ax.set_yticklabels(coldict[k], fontsize=16, fontweight="bold")
+        ax.invert_yaxis()       # labels read top to bottom - says matplotlib
+        if i < (len(coldict.keys()) - 1):
+            ax.get_xaxis().set_visible(False)
+            ax.spines["bottom"].set_visible(False)
+        else:
+            ax.tick_params(axis="x", labelsize=20)
+            # ax.xaxis.label.set_fontsize(24)
+            # ax.tick_params(axis='x', fontsize=14)
+            # pass
+        ax.set_ylabel(k, rotation=45, va="center", ha="right", fontsize=20, fontweight="bold")
+
+        r = ax.spines["right"].set_visible(False)
+        t = ax.spines["top"].set_visible(False)
+        ax.axvline(0.5, ls='--', color='k', linewidth=4)
+    # plt.axvline(0.5, ls='--')
+    plt.tight_layout()
+    plt.show()
+
+
+    
 def plotmulticases(outputdir):
     """
         Function to plot Variations over 1 single case
@@ -1226,12 +1282,12 @@ if __name__=="__main__":
     # # ===================
 
     # The plotting case
-    # keytup = ("Ptu", "Sim", "Acc", "Test", "Transp", "Dim")
-    # valtup = (2, 1, 2, 0, 0, 1)
+    keytup = ("Ptu", "Sim", "Acc", "Test", "Transp", "Dim")
+    valtup = (2, 1, 2, 0, 0, 1)
     # plotmulticases(outputdir)
     # TODO: This is the actual target 
-    # coldict = collectedEval(entr, axisdict, casesdict)
-    # barplotdict(coldict)
+    coldict = collectedEval(entr, axisdict, casesdict)
+    barplotdict(coldict)
 
     plottwocasestoptobottom_outer(entr, axisdict, casesdict, outputdir)
 
