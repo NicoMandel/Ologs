@@ -756,7 +756,35 @@ def getrelcountsforcase(arr, axisdict, keytup, valtup, axes=(0,1)):
     return perc
 
 
-def manarr(e, axisdict, keytup, valtup):
+def comparearray_select(arr, select_index=True):
+    """
+        Comparison of a subarray for one metric. Has a Boolean to choose whether good or bad indices should be selected
+    """
+    a_f = arr[...,0]
+    a_p = arr[...,1]
+    a_h = arr[...,2]
+    a_d = arr[...,3]
+
+    # Test: replace all 0 values in an array with nan
+    # a_f[a_f == 0 ] = np.nan
+    # a_p
+
+    diff_fp = comparetwoarrays(a_f, a_p)
+    diff_ah = comparetwoarrays(a_f, a_h)
+    diff_pd = comparetwoarrays(a_p, a_d)
+    pos_fp, neg_fp = getposnegcounts(diff_fp)
+    pos_hf, neg_hf = getposnegcounts(diff_ah)
+    pos_pd, neg_pd = getposnegcounts(diff_pd)
+    # print("Done with the counts where condition is fulfilled.")
+
+    # Find a sample index where the condition is true
+    if select_index:
+        ind = np.argwhere(diff_pd > 0)
+    else:
+        ind = np.argwhere(diff_pd < 0)
+    return ind
+
+def manarr(e, axisdict, keytup, valtup, select_index=True):
     """
         Manipulate an array and do the operations on the key and value tuples
     """
@@ -777,9 +805,9 @@ def manarr(e, axisdict, keytup, valtup):
         validx = ndict[axind]
         a = np.take(a, validx, axis=axind)
     
-    # Do the actual operation on 
-    indices = comparearray(a)
-
+    # Do the actual operation on
+    indices = comparearray_select(a, select_index)
+    
     # Recreate the indices - walking back up the list
     nind = indices
     for axind in las:
@@ -879,7 +907,7 @@ def testbarplot(df, coldict):
         return tuple([False, True])
 
     # cols = ["blue", "black", "green", "red", "cyan"]
-    cm = plt.get_cmap('winter')
+    # cm = plt.get_cmap('winter')
     fig, axs = plt.subplots(len(coldict.keys()), sharex=True)
     for i, k in enumerate(coldict.keys()):
         subdf = df.loc[k]
@@ -1004,6 +1032,157 @@ def getgtdata(cname, resultsdir, carr):
     return gt
     
 
+def plottwocasestoptobottom_outer(arr, axisdict, casesdict, outputdir):
+    """
+        Function to get two cases and plot them above each other
+    """
+
+    # Define two keytuples and valuetuples to select specific cases - one with 0.9 and one with 0.7 detector accuracy?
+    keytup=tuple(["Sim", "Dim", "Rand", "Acc", "Ptu"])
+    valtup1 = tuple([1, 1, 0, 2, 0])
+    valtup2 = tuple([1, 1, 1, 1, 2])
+
+    # Use the manarr function to get the indices of the cases
+    ind1 = manarr(arr, axisdict, keytup, valtup1, select_index=False)
+    ind2 = manarr(arr, axisdict, keytup, valtup2)
+
+    # Get the case dictionary
+    case1 = getcasefromindex(ind1[0], casesdict)
+    case2 = getcasefromindex(ind2[0], casesdict)
+
+    # Get two index dictionaries
+    c1name = createnamefromidxdict(case1)
+    c2name = createnamefromidxdict(case2)
+
+    plottwocasestoptobottom_inner(outputdir, c1name, c2name)
+
+
+
+def plottwocasestoptobottom_inner(outputdir, c1name, c2name):
+    """
+        Inner function for reproducing the results and loading the files
+    """
+    try:
+        d1, conf1 = getdatadict(outputdir, c1name)
+    except OSError:
+        raise OSError("File or Folder does not exist. Check filename again: {}".format(c1name))
+
+    try:
+        d2, conf2 = getdatadict(outputdir, c2name)
+    except OSError:
+        raise OSError("File or Folder does not exist. Check filename again: {}".format(c2name))
+    
+    # TODO: Do the reproduction of the results
+    carr = colorarr()
+    # Extract all of the important things from the dictionaries
+    gt1 = d1["Ground Truth"]
+    pr1 = d1["Predicted"]
+    cts1 = d1["Counts"]
+    hd1 = d1["Hierarchical-Dynamic"]
+    flat1 = d1["Flat"]
+    obs_prob1 = conf1["Observation"]
+    hier_prior1 = conf1["Hier_Prior"]
+    pred_classes_hierarchical1 = conf1["Pred_Hier"]
+
+    # for the second case
+    gt2 = d2["Ground Truth"]
+    pr2 = d2["Predicted"]
+    cts2 = d2["Counts"]
+    hd2 = d2["Hierarchical-Dynamic"]
+    flat2 = d2["Flat"]
+    obs_prob2 = conf2["Observation"]
+    hier_prior2 = conf2["Hier_Prior"]
+    pred_classes_hierarchical2 = conf2["Pred_Hier"]
+    
+    # Create arrays that store the reproduction
+    postmap_dyn1 = np.zeros_like(gt1)
+    postmap_dyn2 = np.zeros_like(gt2)
+
+    # Create the values that store the entropies
+
+    max_obs1 = cts1.max()
+    max_obs2 = cts2.max()
+    # Recalculate the posterior
+    for i in range(gt1.shape[0]):
+        for j in range(gt1.shape[1]):
+            
+            gtv1 = gt1[i,j,:]
+            gtv2 = gt2[i,j,:]
+            # Recreate the posteriors:
+            post1 = recreate_posterior(hd1[i,j,:], cts1[i,j,:], obs_prob1)
+            post2 = recreate_posterior(hd2[i,j,:], cts2[i,j,:], obs_prob2)
+            postmap_dyn1[i,j,:] = post1
+            postmap_dyn2[i,j,:] = post2
+    
+    # Entropies
+    e_pr1 = cross_entropy_arr(gt1, pr1)
+    e_fl1 = cross_entropy_arr(gt1, flat1)
+    e_hd1 = cross_entropy_arr(gt1, postmap_dyn1)
+    e1 = {}
+    e1["Ground Truth"] = ""
+    e1["Naive Bayes"] = e_fl1
+    e1["Algorithm 2"] = e_pr1
+    e1["Algorithm 4"] = e_hd1
+    
+    e_pr2 = cross_entropy_arr(gt2, pr2)
+    e_fl2 = cross_entropy_arr(gt2, flat2)
+    e_hd2 = cross_entropy_arr(gt2, postmap_dyn2)
+    e2 = {}
+    e2["Ground Truth"] = ""
+    e2["Naive Bayes"] = e_fl2
+    e2["Algorithm 2"] = e_pr2
+    e2["Algorithm 4"] = e_hd2
+
+    # Visual Reproductions
+    reprdict1 = {}
+    reprdict1["Ground Truth"] = vis_idx_map(gt1, carr)
+    reprdict1["Naive Bayes"] = lookupColorFromPosterior(carr, flat1)
+    reprdict1["Algorithm 2"] = lookupColorFromPosterior(carr, pr1)
+    reprdict1["Algorithm 4"] = lookupColorFromPosterior(carr, postmap_dyn1)
+
+    reprdict2 = {}
+    reprdict2["Ground Truth"] = vis_idx_map(gt2, carr)
+    reprdict2["Naive Bayes"] = lookupColorFromPosterior(carr, flat2)
+    reprdict2["Algorithm 2"] = lookupColorFromPosterior(carr, pr2)
+    reprdict2["Algorithm 4"] = lookupColorFromPosterior(carr, postmap_dyn2)
+    
+    # TODO: Plot the reproduction top and bottom.
+    fig, axes = plt.subplots(2, len(reprdict2), figsize=(14,8))
+    ds = tuple([reprdict1, reprdict2])
+    es = tuple([e1, e2])
+    cs = tuple([c1name, c2name])
+    maxs = tuple([max_obs1, max_obs2])
+
+    tit = "{}: {:.1f}"
+    for i, reprdict in enumerate(ds):
+        for j, (k, v) in enumerate(reprdict.items()):
+            axes[i,j].imshow(v)
+            e = es[i][k]
+            if "Ground" not in k:
+                title = tit.format(k,e)
+            else: 
+                title = k
+            axes[i,j].set(title=title)
+            axes[i,j].get_xaxis().set_visible(False)
+            axes[i,j].get_yaxis().set_visible(False)
+        print("Casename: {}. Max observations: {}".format(cs[i],maxs[i]))
+
+    # plt.tight_layout()
+    plt.show()
+
+    print("Testline")
+
+
+def getdatadict(outputdir, cname):
+    """
+        Function to only get the datadict. should be wrapped with OSError
+    """
+    d = os.path.abspath(os.path.join(outputdir, cname))
+    f = os.path.join(d, cname+".hdf5")
+    conff = os.path.join(d, "configs.hdf5")
+    datadict = readh5(f)
+    confdict = readh5(conff)
+    return datadict, confdict
 
 
 if __name__=="__main__":
@@ -1053,6 +1232,8 @@ if __name__=="__main__":
     # TODO: This is the actual target 
     # coldict = collectedEval(entr, axisdict, casesdict)
     # barplotdict(coldict)
+
+    plottwocasestoptobottom_outer(entr, axisdict, casesdict, outputdir)
 
     keytup=tuple(["Sim"])
     valtup = tuple([1])
