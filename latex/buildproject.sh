@@ -17,5 +17,5 @@ bibtex $name > /dev/null
 pdflatex $name -synctex=1 -interaction=nonstopmode -file-line-error > /dev/null
 pdflatex $name -synctex=1 -interaction=nonstopmode -file-line-error > /dev/null
 
-rm *.aux *.log *.synctex.gz *.toc
+rm $name.aux $name.log $name.synctex.gz $name.toc $name.bbl $name.blg 
 mv $name.pdf tmp/
