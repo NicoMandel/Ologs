@@ -5,10 +5,18 @@ import numpy as np
 import pandas as pd
 import os
 import time
+from matplotlib import rcParams
+rcParams['font.family'] = "Serif"
+rcParams['font.serif'] = ["Times New Roman"]
+rcParams['axes.titleweight'] = "bold"
+rcParams['axes.titlesize'] = 20
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from copy import deepcopy
 import seaborn as sns
+# plt.rcParams["font.family"] = "Serif"
+# plt.rcParams["font.name"] = "Times New Roman"
+# csfont = {'fontname' : 'Times New Roman'}
 
 """
     Order of the Dimensions of the Big Array  - IN THIS ORDER!
@@ -927,6 +935,8 @@ def testbarplot(df, coldict):
             axs[i].spines["bottom"].set_visible(False)
         else:
             axs[i].tick_params(axis="x", labelsize=20)
+            plt.xticks(weight="bold")
+
             # axs[i].xaxis.label.set_fontsize(24)
             # axs[i].tick_params(axis='x', fontsize=14)
             # pass
@@ -936,7 +946,7 @@ def testbarplot(df, coldict):
         t = axs[i].spines["top"].set_visible(False)
         axs[i].axvline(0.5, ls='--', color='k', linewidth=4)
     # plt.axvline(0.5, ls='--')
-    plt.tight_layout()
+    # plt.tight_layout()
     plt.show()
 
 def testbarplot3(df, coldict):
@@ -983,7 +993,7 @@ def testbarplot3(df, coldict):
         t = ax.spines["top"].set_visible(False)
         ax.axvline(0.5, ls='--', color='k', linewidth=4)
     # plt.axvline(0.5, ls='--')
-    plt.tight_layout()
+    # plt.tight_layout()
     plt.show()
 
 
@@ -1047,9 +1057,9 @@ def plotmulticases(outputdir):
     axs[0,0].imshow(gt5)
     axs[0,0].get_xaxis().set_visible(False)
     axs[0,0].get_yaxis().set_visible(False)
-    axs[0,0].set(title="Simulation Case 1")
+    axs[0,0].set(title="a) Simulation Case 1")
     axs[1,0].imshow(data)
-    axs[1,0].set(title="Example Path")
+    axs[1,0].set(title="d) Example Path")
     axs[1,0].get_xaxis().set_visible(False)
     axs[1,0].get_yaxis().set_visible(False)
     axs[1,0].scatter(wps[i,1], wps[i,0], s=20, c='black', marker='x')
@@ -1058,19 +1068,19 @@ def plotmulticases(outputdir):
     axs[0,1].imshow(gt1)
     axs[0,1].get_xaxis().set_visible(False)
     axs[0,1].get_yaxis().set_visible(False)
-    axs[0,1].set(title="Simulation Case 2")
+    axs[0,1].set(title="b) Simulation Case 2")
     axs[0,2].imshow(gt2)
     axs[0,2].get_xaxis().set_visible(False)
     axs[0,2].get_yaxis().set_visible(False)
-    axs[0,2].set(title="Transposed")
+    axs[0,2].set(title="c) Transposed")
     axs[1,1].imshow(gt3)
     axs[1,1].get_xaxis().set_visible(False)
     axs[1,1].get_yaxis().set_visible(False)
-    axs[1,1].set(title="Randomised")
+    axs[1,1].set(title="e) Randomised")
     axs[1,2].imshow(gt4)
     axs[1,2].get_xaxis().set_visible(False)
     axs[1,2].get_yaxis().set_visible(False)
-    axs[1,2].set(title="Test Configuration")
+    axs[1,2].set(title="f) Test Configuration")
     plt.show()
 
     print("Testline for Debugging")
@@ -1209,15 +1219,20 @@ def plottwocasestoptobottom_inner(outputdir, c1name, c2name):
     cs = tuple([c1name, c2name])
     maxs = tuple([max_obs1, max_obs2])
 
+    Rom = tuple(["I", "II"])
+    alph = tuple(["a) ", "b) ", "c) ", "d) "])
+
     tit = "{}: {:.1f}"
     for i, reprdict in enumerate(ds):
+        r =  Rom[i]
         for j, (k, v) in enumerate(reprdict.items()):
+            a = alph[j]
             axes[i,j].imshow(v)
             e = es[i][k]
             if "Ground" not in k:
-                title = tit.format(k,e)
+                title = r + " " + a + tit.format(k,e)
             else: 
-                title = k
+                title = r + " " + a + k
             axes[i,j].set(title=title)
             axes[i,j].get_xaxis().set_visible(False)
             axes[i,j].get_yaxis().set_visible(False)
@@ -1284,10 +1299,10 @@ if __name__=="__main__":
     # The plotting case
     keytup = ("Ptu", "Sim", "Acc", "Test", "Transp", "Dim")
     valtup = (2, 1, 2, 0, 0, 1)
-    # plotmulticases(outputdir)
+    plotmulticases(outputdir)
     # TODO: This is the actual target 
     coldict = collectedEval(entr, axisdict, casesdict)
-    barplotdict(coldict)
+    # barplotdict(coldict)
 
     plottwocasestoptobottom_outer(entr, axisdict, casesdict, outputdir)
 

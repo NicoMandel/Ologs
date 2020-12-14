@@ -9,6 +9,7 @@
 \usepackage{amsmath}
 \usepackage{multirow}
 \usepackage{hyperref}
+\usepackage[justification=justified,format=plain]{caption}
 \hypersetup{
     colorlinks=true,
     linkcolor=black,
@@ -114,7 +115,7 @@ The taxonomy of the selected literature illustrates the methods employed in the 
 
 \begin{figure*}
     \centering
-    \includegraphics[width=\textwidth]{Lit-14.png}
+    \includegraphics[width=\textwidth]{Lit-15-TNR.png}
     \caption{\bf{
         Categorization of the included literature. The y-axis represents the level of the semantic information, whether objects, areas or a hierarchical combination were used. The x-axis represents the spatial information, ranging from image space over topological associations to metric space. The colors represent the type of robot used in the research, with blue denoting UAVs, orange denoting ground robots and green generic research.
     }}
@@ -147,7 +148,7 @@ The centralised clustering indicates that research has benefitted from hybrid ap
 \section{Simulations} \label{sec:Sim}
 \begin{figure*}[t]
     \centering
-    \includegraphics[width=0.8\textwidth,height=3.5in]{SimComp13.png}
+    \includegraphics[width=0.8\textwidth,height=3.5in]{SimComp14-TNR.png}
     \caption{\bf{
         Examples of the simulations abstracted from possible aerial images, see figure~\ref{fig:AerialImg}. Colors are intended to represent different semantic classes according to table~\ref{tab:colors}, see figure~\ref{fig:AerialImg} for context. a) shows the first simulation environment $s=1$, b) the second environment $s=2$. c) a transposed configuration, $t=1$, e) randomised configuration $r=1$ and f) a test configuration $c=1$ as defined in table~\ref{tab:params}. d) shows an example path, with the $\times$ representing the UAV, the green cells the previously seen cells, the red cells the currently seen and already known cells and the blue cells the cells predicted at $t_{-1}$ 
     }}
@@ -233,9 +234,9 @@ Figure~\ref{fig:SimCase} illustrates the basic variations for the simulation env
 \subsubsection{Monte-Carlo simulations} \label{ssec:SimMetMC}
 \begin{figure*}[t]
     \centering
-    \includegraphics[width=\textwidth]{Results-15.png}
+    \includegraphics[width=\textwidth]{Results-16-TNR.png}
     \caption{\bf{
-        Relative results related through equation~\ref{eq:eval} of the two best performing algorithms, Algorithm 2 and the Proposed Algorithm 4. The entropies calculated by equation~\ref{eq:Entropy} were subtracted from one another and related through equation~\ref{eq:eval}. The vertical black dashed line indicates the $\mathbf{50}$\% threshold. Values lower than the threshold represent a worse performance of the proposed algorithm 4. Colors serve to indicate differences in parameters. 
+        Relative results related through equation~\ref{eq:eval} of the two best performing algorithms, Algorithm 2 and the proposed Algorithm 4. The entropies calculated by equation~\ref{eq:Entropy} were subtracted from one another and related through equation~\ref{eq:eval}. The vertical black dashed line indicates the 50~\% threshold. Values lower than the threshold represent a worse performance of the proposed algorithm 4. Colors serve to indicate differences in parameters. 
     }}
     \label{fig:Res}
 \end{figure*}
@@ -275,7 +276,7 @@ The decreasing bars for the accuracy-parameter in figure~\ref{fig:Res} indicate 
 \begin{figure*}
     \centering
     \resizebox{\textwidth}{!}{
-    \includegraphics[width=4in]{SampRes-13.png}}
+    \includegraphics[width=4in]{SampRes-14-TNR.png}}
     \caption{\bf{
         Two reproduction examples for different parameters as presented in table~\ref{tab:params}. The titles indicate the algorithm, as well as the total log-liklihood as defined by equation~\ref{eq:Entropy}. Both cases show results for the second simulation environment $s=2$ with an overlap $o=0.5$, $f=1$ and $t=0$. Row I shows the results for $Ptu=0$ accuracy $0.8$ and $c=0$. Row II for $Ptu=2$,~accuracy $0.7$ and $c=1$. Columns a) show the ground truths, b) the Naive Bayes filter, c) Algorithm 2 and d) the Proposed Algorithm 4. 
     }}
