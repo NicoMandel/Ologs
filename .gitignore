@@ -1,6 +1,9 @@
 **/.vscode
 
-**/tmp/
+**/tmp/*
+!/tmp/path.py
+
+Animations/*
 
 **/*.zip
 **/*.vec
