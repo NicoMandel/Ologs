@@ -3,7 +3,7 @@
 **/tmp/*
 !/tmp/path.py
 
-Animations/*
+**/Animations/*
 
 **/*.zip
 **/*.vec
